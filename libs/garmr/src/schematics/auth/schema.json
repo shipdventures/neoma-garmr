@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "GarmrAuthSchematic",
+  "title": "Garmr Auth Schematic Options",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "format": "path",
+      "description": "The path to create the auth module.",
+      "default": "src"
+    },
+    "mode": {
+      "type": "string",
+      "description": "The output mode for controllers.",
+      "default": "api",
+      "enum": ["api", "html"]
+    }
+  }
+}

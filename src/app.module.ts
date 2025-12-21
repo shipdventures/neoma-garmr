@@ -1,20 +1,23 @@
 import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
-import { ExampleModule } from "@lib"
+import { GarmrModule, Controllers } from "@neoma/garmr"
 import { AppController } from "./app.controller"
+import { User } from "./user.entity"
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: "sqlite",
       database: ":memory:",
-      entities: ["src/**/*.entity.ts"],
+      entities: [User],
       synchronize: true,
     }),
-    ExampleModule,
-    // Add additional package modules here for E2E testing
-    // Example: YourPackageModule.forRoot(),
+    GarmrModule.forRoot({
+      secret: "test-secret",
+      expiresIn: "1h",
+      entity: User,
+    }),
   ],
-  controllers: [AppController],
+  controllers: [AppController, ...Controllers],
 })
 export class AppModule {}

@@ -3,12 +3,15 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "setupFilesAfterEnv": ["jest-extended/all"],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
     "fixtures/(.*)$": "<rootDir>/../fixtures/$1",
-    "@lib/(.*)$": "<rootDir>/../libs/package-template/src/$1",
-    "@lib": "<rootDir>/../libs/package-template/src"
+    "@lib/(.*)$": "<rootDir>/../libs/garmr/src/$1",
+    "@lib": "<rootDir>/../libs/garmr/src",
+    "@neoma/garmr/(.*)$": "<rootDir>/../libs/garmr/dist/$1",
+    "@neoma/garmr": "<rootDir>/../libs/garmr/dist"
   }
 }
