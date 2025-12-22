@@ -1,7 +1,7 @@
 import { existsSync, rmSync } from "fs"
 import { join } from "path"
 
-export default async () => {
+export default async (): Promise<void> => {
   const authDir = join(__dirname, "..", "src/auth")
 
   if (existsSync(authDir)) {
