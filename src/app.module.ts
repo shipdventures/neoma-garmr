@@ -1,19 +1,24 @@
+import { faker } from "@faker-js/faker/."
+import { GarmrModule } from "@neoma/garmr"
 import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
-import { ExampleModule } from "@lib"
+
 import { AppController } from "./app.controller"
+import { User } from "./user.entity"
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: "sqlite",
       database: ":memory:",
-      entities: ["src/**/*.entity.ts"],
+      entities: [User],
       synchronize: true,
     }),
-    ExampleModule,
-    // Add additional package modules here for E2E testing
-    // Example: YourPackageModule.forRoot(),
+    GarmrModule.forRoot({
+      secret: faker.internet.password(),
+      expiresIn: "1h",
+      entity: User,
+    }),
   ],
   controllers: [AppController],
 })

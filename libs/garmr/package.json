@@ -1,19 +1,19 @@
 {
-  "name": "@neoma/package-template",
+  "name": "@neoma/garmr",
   "version": "0.1.0",
-  "description": "{{PACKAGE_DESCRIPTION}}",
+  "description": "A fully fledged auth solution for nestjs including username/password, oauth, and api key auth.",
   "author": "Shipdventures",
   "repository": {
     "type": "git",
-    "url": "{{REPO_URL}}"
+    "url": "https://github.com/shipdventures/neoma-garmr"
   },
   "bugs": {
-    "url": "{{REPO_URL}}/issues"
+    "url": "https://github.com/shipdventures/neoma-garmr/issues"
   },
-  "homepage": "{{REPO_URL}}#readme",
+  "homepage": "https://github.com/shipdventures/neoma-garmr#readme",
   "keywords": [
     "nestjs",
-    "package-template",
+    "garmr",
     "laravel",
     "neoma"
   ],

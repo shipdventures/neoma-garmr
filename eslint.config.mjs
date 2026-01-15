@@ -1,5 +1,6 @@
 // @ts-check
 import eslint from "@eslint/js"
+import importX from "eslint-plugin-import-x"
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import globals from "globals"
 import tseslint from "typescript-eslint"
@@ -30,6 +31,9 @@ export default tseslint.config(
   },
   {
     files: ["**/*.ts"],
+    plugins: {
+      "import-x": importX,
+    },
     rules: {
       "@typescript-eslint/no-unsafe-argument": "error",
       // Don't use semi-colons to terminate statements.
@@ -44,6 +48,19 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
       // Any prettier issues are a lint error.
       "prettier/prettier": ["error"],
+      // Import sorting and organization.
+      "import-x/order": [
+        "error",
+        {
+          groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
+          "newlines-between": "always",
+          alphabetize: { order: "asc" },
+        },
+      ],
+      // Detect circular dependencies.
+      "import-x/no-cycle": "error",
+      // Prevent duplicate imports.
+      "import-x/no-duplicates": "error",
     },
   },
 )

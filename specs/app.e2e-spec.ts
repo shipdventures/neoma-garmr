@@ -1,5 +1,5 @@
-import { HttpStatus } from "@nestjs/common"
 import { managedAppInstance } from "@neoma/managed-app"
+import { HttpStatus } from "@nestjs/common"
 import * as request from "supertest"
 
 describe("AppController (e2e)", () => {

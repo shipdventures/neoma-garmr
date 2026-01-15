@@ -27,7 +27,7 @@ updates:
 
   # Library package dependencies (actual published package dependencies)
   - package-ecosystem: "npm"
-    directory: "/libs/{{PACKAGE_NAME}}"
+    directory: "/libs/garmr"
     schedule:
       interval: "weekly"
       day: "monday"

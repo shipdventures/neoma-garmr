@@ -1,239 +1,349 @@
-# Neoma Package Template
+# @neoma/garmr
 
-Template for creating new Neoma packages with consistent structure, configuration, and testing setup.
+A complete email/password authentication library for NestJS applications. Garmr provides registration, authentication, JWT token management, and route protection out of the box.
 
-## Creating a New Package
+## Features
 
-### 1. Copy this template
+- User registration with password hashing (bcrypt)
+- Email/password authentication
+- JWT token issuance and verification
+- Automatic session middleware
+- Route protection with guards and decorators
+- Validation DTOs with customizable error messages
+- Event emission for registration and authentication
 
-```bash
-cd /path/to/wulfstack/packages
-cp -r neoma-package-template neoma-<your-package-name>
-cd neoma-<your-package-name>
-```
-
-### 2. Replace placeholders
-
-Search and replace throughout the project:
-- `{{PACKAGE_NAME}}` → Your package name (e.g., "garmr", "validation")
-- `{{PACKAGE_DESCRIPTION}}` → Short description
-- `{{REPO_URL}}` → GitHub repository URL (e.g., "https://github.com/shipdventures/neoma-garmr")
-
-**Quick find/replace:**
-```bash
-# macOS/Linux
-find . -type f -name "*.json" -o -name "*.md" -o -name "*.ts" | xargs sed -i '' 's/{{PACKAGE_NAME}}/your-package-name/g'
-find . -type f -name "*.json" -o -name "*.md" -o -name "*.ts" | xargs sed -i '' 's/{{PACKAGE_DESCRIPTION}}/Your description/g'
-find . -type f -name "*.json" -o -name "*.md" -o -name "*.ts" | xargs sed -i '' 's|{{REPO_URL}}|https://github.com/your-org/your-repo|g'
-```
-
-### 3. Rename directories
+## Installation
 
 ```bash
-mv libs/package-template libs/your-package-name
+npm install @neoma/garmr
 ```
 
-### 4. Install dependencies
+### Peer Dependencies
+
+Garmr requires the following peer dependencies:
 
 ```bash
-npm install
+npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm bcrypt jsonwebtoken class-validator class-transformer
 ```
 
-### 5. Start building!
+## Getting Started
 
-```bash
-npm test        # Unit tests (TDD)
-npm run test:e2e # E2E tests
-npm run build   # Build library
-npm run lint    # Lint code
-```
+### 1. Create your User entity
 
-## Package Structure
+Your user entity must implement the `Authenticatable` interface:
 
-```
-neoma-<package-name>/
-├── libs/
-│   └── <package-name>/           # The npm package
-│       ├── src/
-│       │   ├── modules/          # NestJS modules
-│       │   ├── decorators/       # Custom decorators
-│       │   ├── middlewares/      # Middleware
-│       │   ├── guards/           # Guards
-│       │   ├── services/         # Services
-│       │   ├── interfaces/       # TypeScript interfaces
-│       │   ├── constants/        # Constants
-│       │   └── index.ts          # Public API exports
-│       ├── package.json          # Published package.json
-│       └── tsconfig.lib.json     # Library TypeScript config
-├── src/                          # Example/test application
-│   ├── app.module.ts
-│   └── ...
-├── specs/                        # E2E tests
-│   ├── jest-e2e.json
-│   └── *.e2e-spec.ts
-├── fixtures/                     # Test fixtures and utilities
-│   ├── app/                      # Test app lifecycle management
-│   ├── database/                 # In-memory database setup
-│   ├── models/                   # Model factory patterns
-│   ├── matchers/                 # Custom Jest matchers
-│   └── e2e-setup.js              # E2E build hook
-├── package.json                  # Development package.json
-├── tsconfig.json                 # Root TypeScript config
-├── eslint.config.mjs             # ESLint config
-├── .prettierrc                   # Prettier config
-├── .gitignore
-├── .nvmrc
-├── LICENSE
-└── README.md                     # Package documentation
-```
-
-## Testing Strategy
-
-### E2E Tests (`specs/`)
-- One file per major feature or configuration
-- Tests full install experience and integration
-- Uses real NestJS app, real database
-- Proves README instructions work
-
-**Example**: The template includes `specs/app.e2e-spec.ts` demonstrating how to test endpoints using `managedAppInstance()` and supertest.
-
-### Unit Tests (`libs/<package>/src/**/*.spec.ts`)
-- TDD: Drive implementation
-- Test individual classes/functions
-- Fast feedback loop
-- Test edge cases and error handling
-
-**Example**: The template includes `libs/package-template/src/modules/example.module.spec.ts` showing how to test NestJS modules.
-
-### Complete Testing Flow
-
-1. **Write library code** in `libs/package-template/src/`
-2. **Write unit tests** alongside your code (`*.spec.ts`)
-3. **Export from** `libs/package-template/src/index.ts`
-4. **Import in** `src/app.module.ts` for E2E testing
-5. **Write E2E tests** in `specs/` to validate integration
-
-The template includes working examples of all these steps with `ExampleModule`.
-
-**Don't test the same config twice** - E2E covers integration, unit tests cover logic.
-
-## Testing Infrastructure
-
-The template includes ready-to-use testing utilities in the `fixtures/` directory:
-
-### App Lifecycle (`fixtures/app`)
 ```typescript
-import { managedAppInstance } from "fixtures/app"
+import { Authenticatable } from "@neoma/garmr"
+import { Exclude } from "class-transformer"
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm"
 
-describe("My E2E Test", () => {
-  it("should work", async () => {
-    const app = managedAppInstance()
-    // App is automatically initialized before each test
-    // and cleaned up after each test
-  })
-})
+@Entity()
+export class User implements Authenticatable {
+  @PrimaryGeneratedColumn("uuid")
+  public id: string
+
+  @Column({ unique: true })
+  public email: string
+
+  @Exclude()
+  @Column()
+  public password: string
+}
 ```
 
-### Database Setup (`fixtures/database`)
+### 2. Configure GarmrModule
+
+Import and configure `GarmrModule` in your application module:
+
 ```typescript
-import { managedDatasourceInstance } from "fixtures/database"
+import { GarmrModule } from "@neoma/garmr"
+import { Module } from "@nestjs/common"
+import { TypeOrmModule } from "@nestjs/typeorm"
 
-describe("My Database Test", () => {
-  it("should query database", async () => {
-    const datasource = managedDatasourceInstance()
-    // Fresh in-memory SQLite database for each test
-    // Automatically destroyed after each test
-  })
+import { User } from "./user.entity"
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: "postgres",
+      // ... your database config
+      entities: [User],
+    }),
+    GarmrModule.forRoot({
+      secret: process.env.JWT_SECRET,
+      expiresIn: "1h",
+      entity: User,
+    }),
+  ],
 })
+export class AppModule {}
 ```
 
-### Model Factories (`fixtures/models`)
-See `fixtures/models/README.md` for the pattern and examples.
+### 3. Enable validation
 
-### Custom Matchers (`fixtures/matchers`)
-- `toThrowEquals(error)` - Assert errors match exactly
-- `toEqualError(error)` - Assert errors are equal
+Garmr exports DTOs (`RegistrationDto`, `CredentialsDto`) with `class-validator` decorators. For validation to work, you must enable `ValidationPipe` in your application. This applies to Garmr's DTOs and any custom DTOs you create.
 
-### E2E Build Hook (`fixtures/e2e-setup.js`)
-Automatically builds the library before E2E tests run.
+See the [NestJS Validation documentation](https://docs.nestjs.com/techniques/validation) for setup instructions.
 
-## Scripts
+### 4. Create authentication endpoints
 
-- `npm run build` - Build the library
-- `npm run lint` - Lint all code
-- `npm test` - Run unit tests in watch mode
-- `npm run test:e2e` - Run E2E tests in watch mode
+Use the provided services to build your authentication endpoints:
 
-## Configuration Highlights
+```typescript
+import {
+  AuthenticationService,
+  CredentialsDto,
+  RegistrationDto,
+  RegistrationService,
+  TokenService,
+} from "@neoma/garmr"
+import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common"
 
-### TypeScript
-- Target: ES2022
-- Strict null checks enabled
-- Decorators enabled
-- No semicolons (enforced)
+import { User } from "./user.entity"
 
-### ESLint
-- Explicit return types required
-- Explicit member accessibility required
-- No floating promises
-- Prettier integration
+@Controller("auth")
+export class AuthController {
+  public constructor(
+    private readonly registrationService: RegistrationService,
+    private readonly authenticationService: AuthenticationService,
+    private readonly tokenService: TokenService,
+  ) {}
 
-### Jest
-- ts-jest for TypeScript
-- jest-extended for additional matchers
-- In-memory SQLite for tests
-- Module path mapping for clean imports
+  @Post("register")
+  public async register(@Body() dto: RegistrationDto): Promise<{ token: string }> {
+    const user = await this.registrationService.register<User>(dto)
+    const token = this.tokenService.issue(user)
+    return { token }
+  }
 
-## Example README Structure
+  @Post("login")
+  @HttpCode(HttpStatus.OK)
+  public async login(@Body() dto: CredentialsDto): Promise<{ token: string }> {
+    const user = await this.authenticationService.authenticate(dto)
+    const token = this.tokenService.issue(user)
+    return { token }
+  }
+}
+```
 
-When you publish, your README should include:
+**Token delivery is your choice.** The example above returns the token in the response body. You could also set it as an HttpOnly cookie for browser clients - the implementation is up to you.
 
-1. **Motivation** - Why this package exists
-2. **Problem/Solution** - Before/after code examples
-3. **Installation** - Step-by-step setup
-4. **Basic Usage** - Simple examples
-5. **Advanced Usage** - Custom configurations
-6. **API Reference** - All public APIs
-7. **Links** - npm, GitHub, docs
+### 5. Protect routes
 
-See `@neoma/route-model-binding` README for a good example.
+Use the `Authenticated` guard and `Principal` decorator to protect routes:
 
-## Publishing Checklist
+```typescript
+import { Authenticated, Principal } from "@neoma/garmr"
+import { Controller, Get, UseGuards } from "@nestjs/common"
 
-Before publishing to npm:
+import { User } from "./user.entity"
 
-- [ ] All tests passing
-- [ ] README is complete
-- [ ] LICENSE file included
-- [ ] Version bumped in both package.json files
-- [ ] Built with `npm run build`
-- [ ] Verify exports in `libs/<package>/src/index.ts`
-- [ ] Test installation in separate project
-- [ ] Verify peer dependencies are correct
+@Controller("me")
+@UseGuards(Authenticated)
+export class ProfileController {
+  @Get()
+  public get(@Principal() user: User): { id: string; email: string } {
+    return {
+      id: user.id,
+      email: user.email,
+    }
+  }
+}
+```
+
+The `AuthenticationMiddleware` is automatically applied by `GarmrModule`, extracting the JWT from the `Authorization: Bearer <token>` header and attaching the user to `req.principal`.
+
+## Example Requests
+
+### Registration
 
 ```bash
-cd libs/<your-package-name>
-npm publish --access public
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "SecureP@ss1"}'
 ```
 
-## Neoma Package Standards
+**Success (201 Created):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
 
-All Neoma packages should:
-- ✅ Be Laravel-inspired but NestJS-native
-- ✅ Have minimal boilerplate
-- ✅ Include comprehensive tests
-- ✅ Have excellent documentation
-- ✅ Use TypeScript strictly
-- ✅ Follow consistent code style
-- ✅ Be production-ready
+**Validation error (400 Bad Request):**
+```json
+{
+  "statusCode": 400,
+  "message": ["A strong password must be least 8 characters long and include at least 1 letter, 1 number, and 1 special character."],
+  "error": "Bad Request"
+}
+```
 
-## Template Improvements (TODO)
+**Duplicate email (409 Conflict):**
+```json
+{
+  "statusCode": 409,
+  "message": "The email user@example.com is already registered.",
+  "email": "user@example.com",
+  "error": "Conflict"
+}
+```
 
-Future enhancements to this template:
+### Login
 
-- [ ] **GitHub Issue & PR Templates** - Add `.github/ISSUE_TEMPLATE/` for bug reports and feature requests, plus `.github/pull_request_template.md`
-- [ ] **CONTRIBUTING.md** - Document contribution guidelines, coding standards, and development workflow
-- [ ] **CHANGELOG.md Template** - Add template following Keep a Changelog format
-- [ ] **README Badges** - Add placeholders for CI status, npm version, and license badges
-- [ ] **VSCode Extensions** - Add `.vscode/extensions.json` with recommended extensions for NestJS development
-- [ ] **CODE_OF_CONDUCT.md** - Add community standards if accepting external contributions
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "SecureP@ss1"}'
+```
+
+**Success (200 OK):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Invalid credentials (401 Unauthorized):**
+```json
+{
+  "statusCode": 401,
+  "message": "Incorrect credentials provided for the identifier user@example.com.",
+  "identifier": "user@example.com"
+}
+```
+
+### Accessing protected routes
+
+```bash
+curl http://localhost:3000/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Success (200 OK):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "user@example.com"
+}
+```
+
+**Not authenticated (401 Unauthorized):**
+```json
+{
+  "statusCode": 401,
+  "message": "Unable to authenticate a principal. Please check the documentation for accepted authentication methods",
+  "error": "Unauthorized"
+}
+```
+
+## API Reference
+
+### GarmrModule
+
+#### `GarmrModule.forRoot(options)`
+
+Configures the authentication module.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `secret` | `string` | JWT signing secret |
+| `expiresIn` | `string` | Token expiration (e.g., "1h", "7d") |
+| `entity` | `Type<Authenticatable>` | Your user entity class |
+
+### Services
+
+#### RegistrationService
+
+- `register<T>(dto: RegistrationDto): Promise<T>` - Registers a new user with hashed password
+
+#### AuthenticationService
+
+- `authenticate(dto: CredentialsDto): Promise<Authenticatable>` - Validates credentials and returns the user
+
+#### TokenService
+
+- `issue(user: Authenticatable): string` - Issues a JWT for the user
+- `verify(token: string): JwtPayload` - Verifies and decodes a token
+- `decode(token: string): JwtPayload | null` - Decodes without verification
+
+### Guards
+
+#### Authenticated
+
+A guard that ensures `req.principal` exists. Throws `UnauthorizedException` if not authenticated.
+
+```typescript
+@UseGuards(Authenticated)
+@Controller("protected")
+export class ProtectedController {}
+```
+
+### Decorators
+
+#### Principal
+
+Extracts the authenticated user from the request.
+
+```typescript
+@Get()
+public getProfile(@Principal() user: User): User {
+  return user
+}
+```
+
+### DTOs
+
+#### RegistrationDto
+
+- `email` - Required, must be valid email format
+- `password` - Required, must meet strength requirements (8+ chars, letter, number, special char)
+
+#### CredentialsDto
+
+- `email` - Required, must be valid email format
+- `password` - Required
+
+### Exceptions
+
+| Exception | Status | When |
+|-----------|--------|------|
+| `EmailAlreadyExistsException` | 409 | Email already registered |
+| `IncorrectCredentialsException` | 401 | Invalid email or password |
+| `TokenMalformedException` | 401 | JWT is malformed |
+| `TokenFailedVerificationException` | 401 | JWT verification failed |
+
+### Events
+
+#### GarmrRegisteredEvent
+
+Emitted after successful registration.
+
+```typescript
+import { GarmrRegisteredEvent } from "@neoma/garmr"
+import { OnEvent } from "@nestjs/event-emitter"
+
+@Injectable()
+export class NotificationService {
+  @OnEvent(GarmrRegisteredEvent.event)
+  public async onRegistered(event: GarmrRegisteredEvent): Promise<void> {
+    // Send welcome email, etc.
+  }
+}
+```
+
+#### GarmrAuthenticatedEvent
+
+Emitted after successful authentication.
+
+## Security Considerations
+
+- Passwords are hashed using bcrypt with automatic salt generation
+- JWTs are verified for signature, expiration, and not-before claims
+- The `alg=none` attack is prevented by requiring signature verification
+- Tokens for non-existent users are rejected
+- Email lookups are case-insensitive
+
+## License
+
+MIT
