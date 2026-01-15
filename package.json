@@ -43,7 +43,7 @@
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.13",
-    "@types/node": "^22.10.7",
+    "@types/node": "^25.0.9",
     "@types/supertest": "^6.0.2",
     "class-transformer": "^0.5.1",
     "eslint": "^9.18.0",
