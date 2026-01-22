@@ -1,13 +1,13 @@
 import { faker } from "@faker-js/faker"
-import {
-  Authenticatable,
-  EmailAlreadyExistsException,
-  GarmrModule,
-  GarmrRegisteredEvent,
-  RegistrationService,
-} from "@lib"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { Test, TestingModule } from "@nestjs/testing"
+
+import { GarmrRegisteredEvent } from "../events/garmr-registered.event"
+import { EmailAlreadyExistsException } from "../exceptions/email-already-exists.exception"
+import { GarmrModule } from "../garmr.module"
+import { Authenticatable } from "../interfaces/authenticatable.interface"
+
+import { RegistrationService } from "./registration.service"
 import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm"
 import { Column, Entity, PrimaryGeneratedColumn, Repository } from "typeorm"
 

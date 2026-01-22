@@ -23,6 +23,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "bcrypt": "^6.0.0",
     "class-validator": "^0.14.3",
+    "cookie": "^1.1.1",
     "jsonwebtoken": "^9.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -31,6 +32,7 @@
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@faker-js/faker": "^9.6.0",
+    "@neoma/garmr": "file:./libs/garmr",
     "@neoma/managed-app": "^0.3.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
@@ -75,7 +77,12 @@
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.spec.json"
+        }
+      ]
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
@@ -91,9 +98,9 @@
       "<rootDir>/fixtures/matchers/index.js"
     ],
     "moduleNameMapper": {
-      "fixtures/(.*)$": "<rootDir>/fixtures/$1",
-      "@lib/(.*)$": "<rootDir>/libs/garmr/src/$1",
-      "@lib": "<rootDir>/libs/garmr/src"
+      "^@neoma/garmr$": "<rootDir>/libs/garmr/src",
+      "^@neoma/garmr/(.*)$": "<rootDir>/libs/garmr/src/$1",
+      "^fixtures/(.*)$": "<rootDir>/fixtures/$1"
     }
   }
 }

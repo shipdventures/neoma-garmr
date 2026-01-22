@@ -4,11 +4,15 @@
   "title": "Garmr Auth Schematic Options",
   "type": "object",
   "properties": {
-    "path": {
+    "name": {
       "type": "string",
       "format": "path",
       "description": "The path to create the auth module.",
-      "default": "src"
+      "default": "src",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      }
     },
     "mode": {
       "type": "string",

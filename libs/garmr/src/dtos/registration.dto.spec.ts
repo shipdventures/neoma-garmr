@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker"
-import { RegistrationDto } from "@lib/dtos/registration.dto"
 import { validateOrReject } from "class-validator"
+
+import { RegistrationDto } from "./registration.dto"
 import { credentials } from "fixtures/fakes/credentials"
 
 const { internet } = faker

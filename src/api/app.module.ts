@@ -1,10 +1,9 @@
-import { faker } from "@faker-js/faker/."
 import { GarmrModule } from "@neoma/garmr"
 import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
+import { User } from "specs/shared/user.entity"
 
-import { AppController } from "./app.controller"
-import { User } from "./user.entity"
+import { AuthModule } from "./auth/auth.module"
 
 @Module({
   imports: [
@@ -15,11 +14,11 @@ import { User } from "./user.entity"
       synchronize: true,
     }),
     GarmrModule.forRoot({
-      secret: faker.internet.password(),
-      expiresIn: "1h",
+      secret: process.env.GARMR_SECRET!,
+      expiresIn: "1d",
       entity: User,
     }),
+    AuthModule,
   ],
-  controllers: [AppController],
 })
 export class AppModule {}

@@ -14,7 +14,7 @@ import {
 } from "@angular-devkit/schematics"
 
 interface AuthSchematicOptions {
-  path: string
+  name: string
   mode: "api" | "html"
 }
 
@@ -25,7 +25,7 @@ export function main(options: AuthSchematicOptions): Rule {
         ...strings,
         ...options,
       }),
-      move(join(options.path, "auth")),
+      move(join(options.name, "auth")),
     ])
 
     return chain([mergeWith(templateSource)])(tree, context)

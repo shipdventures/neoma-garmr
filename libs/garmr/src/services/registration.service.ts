@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { DataSource } from "typeorm"
 
+import { RegistrationDto } from "../dtos/registration.dto"
 import { GarmrRegisteredEvent } from "../events/garmr-registered.event"
 import { EmailAlreadyExistsException } from "../exceptions/email-already-exists.exception"
 import { GarmrOptions, GARMR_OPTIONS } from "../garmr.options"
@@ -47,7 +48,7 @@ export class RegistrationService {
    * @see {@link GarmrRegisteredEvent} for event payload structure
    */
   public async register<T extends Authenticatable>(
-    dto: Omit<T, "id">,
+    dto: RegistrationDto,
   ): Promise<T> {
     const repo = this.datasource.getRepository<T>(this.options.entity)
     const email = dto.email.toLowerCase()

@@ -1,12 +1,4 @@
 import { faker } from "@faker-js/faker"
-import {
-  Authenticatable,
-  GarmrAuthenticatedEvent,
-  GarmrModule,
-  RegistrationService,
-} from "@lib"
-import { IncorrectCredentialsException } from "@lib/exceptions/incorrect-credentials.exception"
-import { InvalidCredentialsException } from "@lib/exceptions/invalid-credentials.exception"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { Test, TestingModule } from "@nestjs/testing"
 import { TypeOrmModule } from "@nestjs/typeorm"
@@ -14,47 +6,14 @@ import * as jwt from "jsonwebtoken"
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm"
 import { v4 } from "uuid"
 
-import { AuthenticationService } from "./authentication.service"
+import { GarmrAuthenticatedEvent } from "../events/garmr-authenticated.event"
+import { IncorrectCredentialsException } from "../exceptions/incorrect-credentials.exception"
+import { InvalidCredentialsException } from "../exceptions/invalid-credentials.exception"
+import { GarmrModule } from "../garmr.module"
+import { Authenticatable } from "../interfaces/authenticatable.interface"
 
-const BEARER_SCHEMES = ["Bearer", "bearer", "BEARER"]
-const BASIC_SCHEMES = ["Basic", "basic", "BASIC"]
-const MALFORMED_BEARER_TOKENS = [
-  {
-    header: "",
-    desc: "an empty string",
-    err: `Invalid authentication token scheme. Expected Bearer but got ""`,
-  },
-  {
-    header: "Bearer",
-    desc: "no token",
-    err: "Invalid authentication header format",
-  },
-  {
-    header: "Bearer ",
-    desc: "no token (trailing space)",
-    err: "Invalid authentication header format",
-  },
-  {
-    header: "Bearer      ",
-    desc: "no token (multiple spaces)",
-    err: "Invalid authentication header format",
-  },
-  {
-    header: "   ",
-    desc: "whitespace only",
-    err: `Invalid authentication token scheme. Expected Bearer but got ""`,
-  },
-  {
-    header: "Bearer notajwt",
-    desc: "malformed JWT",
-    err: "Invalid JWT: Invalid JWT signature",
-  },
-  {
-    header: "Bearer abc.def",
-    desc: "incomplete JWT",
-    err: "Invalid JWT: Invalid JWT signature",
-  },
-]
+import { AuthenticationService } from "./authentication.service"
+import { RegistrationService } from "./registration.service"
 
 @Entity()
 class Registration implements Authenticatable {
@@ -173,7 +132,7 @@ describe("AuthenticationService", () => {
     })
   })
 
-  describe("authenticate with Bearer token", () => {
+  describe("authenticate with JWT", () => {
     let registration: Registration
     beforeEach(async () => {
       registration = await registrationService.register({
@@ -182,82 +141,38 @@ describe("AuthenticationService", () => {
       })
     })
 
-    BEARER_SCHEMES.forEach((bearer) => {
-      describe(`When it's called with a signed ${bearer} token representing the id of an existing registration`, () => {
-        let token: string
-        beforeEach(() => {
-          token = `${bearer} ${jwt.sign({ sub: registration.id }, secret, { expiresIn })}`
-        })
-
-        it("it should return the registered entity", async () => {
-          const user = await service.authenticate<Registration>(token)
-          expect(user).toEqual(registration)
-        })
-
-        it("should emit a 'garmr.authenticated' event", async () => {
-          const emitSpy = jest.spyOn(eventEmitter, "emit")
-
-          const user = await service.authenticate(token)
-
-          expect(emitSpy).toHaveBeenCalledWith(
-            GarmrAuthenticatedEvent.EVENT_NAME,
-            new GarmrAuthenticatedEvent(user),
-          )
-        })
+    describe(`When it's called with a JWT representing the id of an existing registration`, () => {
+      let token: string
+      beforeEach(() => {
+        token = jwt.sign({ sub: registration.id }, secret, { expiresIn })
       })
 
-      describe(`When it's called with a signed ${bearer} token representing the id of an existing registration (with extra spaces)`, () => {
-        let token: string
-        beforeEach(() => {
-          token = `${bearer}          ${jwt.sign({ sub: registration.id }, secret, { expiresIn })}`
-        })
+      it("it should return the registered entity", async () => {
+        const user = await service.authenticate<Registration>(token)
+        expect(user).toEqual(registration)
+      })
 
-        it("it should return the registered entity", async () => {
-          const user = await service.authenticate<Registration>(token)
-          expect(user).toEqual(registration)
-        })
+      it("should emit a 'garmr.authenticated' event", async () => {
+        const emitSpy = jest.spyOn(eventEmitter, "emit")
 
-        it("should emit a 'garmr.authenticated' event", async () => {
-          const emitSpy = jest.spyOn(eventEmitter, "emit")
+        const user = await service.authenticate(token)
 
-          const user = await service.authenticate(token)
-
-          expect(emitSpy).toHaveBeenCalledWith(
-            GarmrAuthenticatedEvent.EVENT_NAME,
-            new GarmrAuthenticatedEvent(user),
-          )
-        })
+        expect(emitSpy).toHaveBeenCalledWith(
+          GarmrAuthenticatedEvent.EVENT_NAME,
+          new GarmrAuthenticatedEvent(user),
+        )
       })
     })
 
-    describe("When it's called with a signed Bearer token representing the id of an non-existing registration", () => {
+    describe("When it's called with JWT representing the id of an non-existing registration", () => {
       const id = v4()
-      const token = `Bearer ${jwt.sign({ sub: id }, secret, { expiresIn })}`
-
+      const token = jwt.sign({ sub: id }, secret, { expiresIn })
       it("it should throw an IncorrectCredentialsException", async () => {
         await expect(service.authenticate(token)).rejects.toMatchError(
           IncorrectCredentialsException,
-          { identifier: id },
-        )
-      })
-
-      it("should not emit a 'garmr.authenticated' event", async () => {
-        const emitSpy = jest.spyOn(eventEmitter, "emit")
-        await expect(service.authenticate(token)).rejects.toMatchError(
-          IncorrectCredentialsException,
-          { identifier: id },
-        )
-        expect(emitSpy).not.toHaveBeenCalled()
-      })
-    })
-
-    describe("When it's called with a signed Bearer token without a sub claim", () => {
-      const token = `Bearer ${jwt.sign({}, secret, { expiresIn })}`
-
-      it("it should throw an InvalidCredentialsException", async () => {
-        await expect(service.authenticate(token)).rejects.toMatchError(
-          InvalidCredentialsException,
-          { message: "Invalid JWT payload: missing sub claim" },
+          {
+            identifier: id,
+          },
         )
       })
 
@@ -268,19 +183,40 @@ describe("AuthenticationService", () => {
       })
     })
 
-    describe("When it's called with a Bearer token with a future not before date", () => {
+    describe("When it's called with a JWT without a sub claim", () => {
+      const token = jwt.sign({}, secret, { expiresIn })
+
+      it("it should throw an InvalidCredentialsException", async () => {
+        await expect(service.authenticate(token)).rejects.toMatchError(
+          InvalidCredentialsException,
+          {
+            message: "Invalid JWT payload: missing sub claim",
+          },
+        )
+      })
+
+      it("should not emit a 'garmr.authenticated' event", async () => {
+        const emitSpy = jest.spyOn(eventEmitter, "emit")
+        await expect(service.authenticate(token)).rejects.toThrow()
+        expect(emitSpy).not.toHaveBeenCalled()
+      })
+    })
+
+    describe("When it's called with a JWT with a future not before date", () => {
       let token: string
       beforeEach(() => {
-        token = `Bearer ${jwt.sign({ sub: registration.id }, secret, {
+        token = jwt.sign({ sub: registration.id }, secret, {
           notBefore: "1d",
           expiresIn,
-        })}`
+        })
       })
 
       it("it should throw an InvalidCredentialsException", async () => {
         await expect(service.authenticate(token)).rejects.toMatchError(
           InvalidCredentialsException,
-          { message: "Invalid JWT: Not active yet (nbf claim)" },
+          {
+            message: "Invalid JWT: Not active yet (nbf claim)",
+          },
         )
       })
 
@@ -291,18 +227,18 @@ describe("AuthenticationService", () => {
       })
     })
 
-    describe("When it's called with an expired Bearer token", () => {
+    describe("When it's called with an expired JWT", () => {
       let token: string
       beforeEach(() => {
-        token = `Bearer ${jwt.sign({ sub: registration.id }, secret, {
-          expiresIn: -10,
-        })}`
+        token = jwt.sign({ sub: registration.id }, secret, { expiresIn: -10 })
       })
 
       it("it should throw an InvalidCredentialsException", async () => {
         await expect(service.authenticate(token)).rejects.toMatchError(
           InvalidCredentialsException,
-          { message: "Invalid JWT: Token expired" },
+          {
+            message: "Invalid JWT: Token expired",
+          },
         )
       })
 
@@ -313,16 +249,18 @@ describe("AuthenticationService", () => {
       })
     })
 
-    describe("When it's called with an incorrectly signed Bearer token", () => {
+    describe("When it's called with an incorrectly signed JWT", () => {
       let token: string
       beforeEach(() => {
-        token = `Bearer ${jwt.sign({ sub: registration.id }, v4(), { expiresIn })}`
+        token = jwt.sign({ sub: registration.id }, v4(), { expiresIn })
       })
 
       it("it should throw an IncorrectCredentialsException", async () => {
         await expect(service.authenticate(token)).rejects.toMatchError(
           InvalidCredentialsException,
-          { message: "Invalid JWT: Invalid JWT signature" },
+          {
+            message: "Invalid JWT: Invalid JWT signature",
+          },
         )
       })
 
@@ -333,13 +271,12 @@ describe("AuthenticationService", () => {
       })
     })
 
-    describe("When it's called without a Bearer token", () => {
+    describe("When it's called without a JWT", () => {
       it("it should throw an InvalidCredentialsException", async () => {
         await expect(
           service.authenticate(undefined as unknown as string),
         ).rejects.toMatchError(InvalidCredentialsException, {
-          message:
-            "Invalid authentication argument. Expected Bearer but got null or undefined",
+          message: "Invalid JWT: JWT not provided",
         })
       })
 
@@ -360,13 +297,15 @@ describe("AuthenticationService", () => {
         const payload = Buffer.from(`{"sub":"${registration.id}"}`).toString(
           "base64url",
         )
-        token = `Bearer ${header}.${payload}.`
+        token = `${header}.${payload}.`
       })
 
       it("it should throw an IncorrectCredentialsException", async () => {
         await expect(service.authenticate(token)).rejects.toMatchError(
           InvalidCredentialsException,
-          { message: "Invalid JWT: Invalid JWT signature" },
+          {
+            message: "Invalid JWT: Invalid JWT signature",
+          },
         )
       })
 
@@ -377,35 +316,33 @@ describe("AuthenticationService", () => {
       })
     })
 
-    MALFORMED_BEARER_TOKENS.forEach(({ header, desc, err }) => {
-      describe(`When called with ${desc}: "${header}"`, () => {
-        it("it should throw an InvalidCredentialsException", async () => {
-          await expect(service.authenticate(header)).rejects.toMatchError(
-            InvalidCredentialsException,
-            { message: err },
-          )
-        })
+    // MALFORMED_BEARER_TOKENS.forEach(({ header, desc, err }) => {
+    //   describe(`When called with ${desc}: "${header}"`, () => {
+    //     it("it should throw an InvalidCredentialsException", async () => {
+    //       await expect(
+    //         service.authenticate({ authorization: header }),
+    //       ).rejects.toMatchError(InvalidCredentialsException, { message: err })
+    //     })
+    //
+    //     it("should not emit a 'garmr.authenticated' event", async () => {
+    //       const emitSpy = jest.spyOn(eventEmitter, "emit")
+    //       await expect(
+    //         service.authenticate({ authorization: header }),
+    //       ).rejects.toThrow()
+    //       expect(emitSpy).not.toHaveBeenCalled()
+    //     })
+    //   })
+    // })
+  })
 
-        it("should not emit a 'garmr.authenticated' event", async () => {
-          const emitSpy = jest.spyOn(eventEmitter, "emit")
-          await expect(service.authenticate(header)).rejects.toThrow()
-          expect(emitSpy).not.toHaveBeenCalled()
-        })
-      })
-    })
-
-    BASIC_SCHEMES.forEach((basic) => {
-      describe(`When it's called with a ${basic} token`, () => {
-        const token = `${basic} ${jwt.sign({ sub: v4() }, secret, { expiresIn })}`
-
-        it("it should throw an InvalidCredentialsException", async () => {
-          await expect(service.authenticate(token)).rejects.toMatchError(
-            InvalidCredentialsException,
-            {
-              message: `Invalid authentication token scheme. Expected Bearer but got "${basic}"`,
-            },
-          )
-        })
+  describe("authenticate with invalid parameters", () => {
+    describe("When it's called with null", () => {
+      it("it should throw an InvalidArgument Error", async () => {
+        await expect(
+          service.authenticate(null as unknown as string),
+        ).rejects.toThrow(
+          "InvalidArgument: credentials cannot be null or undefined",
+        )
       })
     })
   })

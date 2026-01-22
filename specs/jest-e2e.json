@@ -10,10 +10,9 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "fixtures/(.*)$": "<rootDir>/../fixtures/$1",
-    "@lib/(.*)$": "<rootDir>/../libs/garmr/src/$1",
-    "@lib": "<rootDir>/../libs/garmr/src",
-    "@neoma/garmr/(.*)$": "<rootDir>/../libs/garmr/dist/$1",
-    "@neoma/garmr": "<rootDir>/../libs/garmr/dist"
+    "^fixtures/(.*)$": "<rootDir>/../fixtures/$1",
+    "^specs/(.*)$": "<rootDir>/$1",
+    "^@neoma/garmr$": "<rootDir>/../libs/garmr/dist",
+    "^@neoma/garmr/(.*)$": "<rootDir>/../libs/garmr/dist/$1"
   }
 }

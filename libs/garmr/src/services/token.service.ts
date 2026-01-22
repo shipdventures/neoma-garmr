@@ -25,19 +25,40 @@ export class TokenService {
    * Issues a signed JWT for an authenticated entity.
    *
    * @param authenticated - Any object with an `id` property
-   * @returns A signed JWT string with `sub` claim set to the entity's id
+   * @returns Object containing the signed JWT token and its decoded payload
    *
    * @example
    * ```typescript
-   * const token = tokenService.issue(user)
-   * // Token payload: { sub: "user-uuid", iat: 1234567890, exp: 1234571490 }
+   * const { token, payload } = tokenService.issue(user)
+   * // token: "eyJhbGciOiJIUzI1NiIs..."
+   * // payload: { sub: "user-uuid", iat: 1234567890, nbf: 1234567890, exp: 1234571490 }
+   *
+   * // Set cookie with matching expiry
+   * res.cookie('token', token, {
+   *   httpOnly: true,
+   *   expires: new Date(payload.exp * 1000),
+   * })
    * ```
    */
-  public issue(authenticated: { id: any }): string {
-    return jwt.sign({ sub: authenticated.id }, this.options.secret, {
+  public issue(authenticated: { id: any }): {
+    token: string
+    payload: { sub: string; iat: number; nbf: number; exp: number }
+  } {
+    const token = jwt.sign({ sub: authenticated.id }, this.options.secret, {
       expiresIn: this.options.expiresIn,
       notBefore: "0s",
     })
+    const payload = jwt.decode(token) as jwt.JwtPayload
+
+    return {
+      token,
+      payload: {
+        sub: payload.sub!,
+        iat: payload.iat!,
+        nbf: payload.nbf!,
+        exp: payload.exp!,
+      },
+    }
   }
 
   /**

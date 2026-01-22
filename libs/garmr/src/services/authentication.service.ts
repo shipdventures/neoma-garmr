@@ -79,15 +79,9 @@ export class AuthenticationService {
   public async authenticate<T extends Authenticatable>(
     credentials: string | Pick<Authenticatable, "email" | "password">,
   ): Promise<T> {
-    if (credentials === null || credentials === undefined) {
-      throw new InvalidCredentialsException(
-        "Invalid authentication argument. Expected Bearer but got null or undefined",
-      )
-    }
-
     return typeof credentials === "string"
-      ? this.authenticateBearer<T>(credentials)
-      : this.authenticateCredentials<T>(credentials)
+      ? this.authenticateJwt(credentials)
+      : this.authenticateCredentials(credentials)
   }
 
   /**
@@ -119,21 +113,11 @@ export class AuthenticationService {
   /**
    * Authenticates via Bearer token in Authorization header format.
    */
-  private async authenticateBearer<T extends Authenticatable>(
-    header: string,
+  private async authenticateJwt<T extends Authenticatable>(
+    token: string,
   ): Promise<T> {
-    const [scheme, token] = header.split(/\s+/)
-
-    if (scheme.toLowerCase() !== "bearer") {
-      throw new InvalidCredentialsException(
-        `Invalid authentication token scheme. Expected Bearer but got "${scheme}"`,
-      )
-    }
-
     if (!token) {
-      throw new InvalidCredentialsException(
-        "Invalid authentication header format",
-      )
+      throw new InvalidCredentialsException("Invalid JWT: JWT not provided")
     }
 
     let jwt: jsonwebtoken.JwtPayload

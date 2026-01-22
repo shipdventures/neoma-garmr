@@ -40,7 +40,7 @@ export class SessionsController {
   @Post()
   public async create(@Body() dto: CredentialsDto): Promise<{ token: string }> {
     const user = await this.authenticationService.authenticate(dto)
-    const token = this.tokenService.issue(user)
+    const { token } = this.tokenService.issue(user)
     return { token }
   }
 }

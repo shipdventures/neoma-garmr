@@ -1,6 +1,7 @@
-import { faker } from "@faker-js/faker/."
-import { EmailAlreadyExistsException } from "@lib"
+import { faker } from "@faker-js/faker"
 import { HttpStatus } from "@nestjs/common"
+
+import { EmailAlreadyExistsException } from "./email-already-exists.exception"
 
 const { CONFLICT } = HttpStatus
 

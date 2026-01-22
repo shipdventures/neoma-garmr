@@ -12,9 +12,5 @@
     "**/*spec.ts",
     "src/schematics/**/files/**"
   ],
-  "tsconfigRootDir": ".",
-  "paths": {
-    "@lib": ["src"],
-    "@lib/*": ["src/*"]
-  }
+  "tsconfigRootDir": "."
 }

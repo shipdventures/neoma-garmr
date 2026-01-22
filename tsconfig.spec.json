@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "fixtures/*": ["fixtures/*"],
+      "@neoma/garmr": ["libs/garmr/src"],
+      "@neoma/garmr/*": ["libs/garmr/src/*"]
+    }
+  }
+}

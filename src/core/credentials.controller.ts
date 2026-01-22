@@ -11,7 +11,7 @@ import {
   ValidationPipe,
 } from "@nestjs/common"
 
-import { User } from "../user.entity"
+import { User } from "specs/shared/user.entity"
 
 /**
  * A test Controller for user registration and token issuance
@@ -44,7 +44,7 @@ export class CredentialsController {
     @Body() dto: RegistrationDto,
   ): Promise<{ id: string; email: string; token: string }> {
     const user = await this.registrationService.register<User>(dto)
-    const token = this.tokenService.issue(user)
+    const { token } = this.tokenService.issue(user)
     return {
       id: user.id,
       email: user.email,

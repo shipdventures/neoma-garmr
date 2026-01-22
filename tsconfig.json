@@ -19,8 +19,7 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "fixtures/*": ["fixtures/*"],
-      "@lib": ["libs/garmr/src"],
-      "@lib/*": ["libs/garmr/src/*"],
+      "specs/*": ["specs/*"],
       "@neoma/garmr": ["libs/garmr/dist"],
       "@neoma/garmr/*": ["libs/garmr/dist/*"]
     }

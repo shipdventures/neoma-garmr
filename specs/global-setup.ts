@@ -13,11 +13,8 @@ export default async (): Promise<void> => {
     stdio: "inherit",
   })
 
-  // execSync(
-  //   "nest g -c ./libs/garmr/dist/schematics/collection.json auth --no-spec",
-  //   {
-  //     cwd: projectRoot,
-  //     stdio: "inherit",
-  //   },
-  // )
+  execSync("nest g -c @neoma/garmr auth src/api --no-spec", {
+    cwd: projectRoot,
+    stdio: "inherit",
+  })
 }

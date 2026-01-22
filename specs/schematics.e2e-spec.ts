@@ -1,18 +1,37 @@
-import { existsSync } from "fs"
 import { join } from "path"
 
-describe.skip("Auth Schematic (e2e)", () => {
-  const authDir = join(__dirname, "..", "src/auth")
+import {
+  SchematicTestRunner,
+  UnitTestTree,
+} from "@angular-devkit/schematics/testing"
 
-  it("should scaffold the auth directory", () => {
-    expect(existsSync(authDir)).toBeTrue()
+const collectionPath = join(
+  __dirname,
+  "../libs/garmr/dist/schematics/collection.json",
+)
+
+describe("Auth Schematic", () => {
+  let runner: SchematicTestRunner
+  let tree: UnitTestTree
+
+  beforeEach(async () => {
+    runner = new SchematicTestRunner("garmr", collectionPath)
+    tree = await runner.runSchematic("auth", { path: "src" })
   })
 
-  it("should scaffold auth.controller.ts", () => {
-    expect(existsSync(join(authDir, "auth.controller.ts"))).toBeTrue()
+  it("should generate auth.module.ts", () => {
+    expect(tree.files).toContain("/src/auth/auth.module.ts")
   })
 
-  it("should scaffold auth.module.ts", () => {
-    expect(existsSync(join(authDir, "auth.module.ts"))).toBeTrue()
+  it("should generate credentials.controller.ts", () => {
+    expect(tree.files).toContain("/src/auth/credentials.controller.ts")
+  })
+
+  it("should generate sessions.controller.ts", () => {
+    expect(tree.files).toContain("/src/auth/sessions.controller.ts")
+  })
+
+  it("should generate me.controller.ts", () => {
+    expect(tree.files).toContain("/src/auth/me.controller.ts")
   })
 })

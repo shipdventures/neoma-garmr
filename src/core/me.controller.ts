@@ -1,7 +1,6 @@
 import { Authenticated, Principal } from "@neoma/garmr"
 import { Controller, Get, UseGuards } from "@nestjs/common"
-
-import { User } from "../user.entity"
+import { User } from "specs/shared/user.entity"
 
 /**
  * A test Controller for accessing the authenticated user

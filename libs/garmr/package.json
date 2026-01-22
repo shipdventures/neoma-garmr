@@ -20,6 +20,7 @@
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "schematics": "./dist/schematics/collection.json",
   "scripts": {
     "prepublishOnly": "cp ../../README.md ../../LICENSE ."
   },
@@ -27,7 +28,7 @@
     "dist",
     "README.md",
     "LICENSE",
-    "!**/*.json",
+    "dist/schematics/**/*.json",
     "!**/*.tsbuildinfo"
   ],
   "license": "MIT",

@@ -1,9 +1,10 @@
-import { faker } from "@faker-js/faker/."
-import { TokenFailedVerificationException } from "@lib/exceptions/token-failed-verification.exception"
-import { TokenMalformedException } from "@lib/exceptions/token-malformed.exception"
-import { GarmrModule } from "@lib/garmr.module"
-import { Authenticatable } from "@lib/interfaces/authenticatable.interface"
+import { faker } from "@faker-js/faker"
 import { Test, TestingModule } from "@nestjs/testing"
+
+import { TokenFailedVerificationException } from "../exceptions/token-failed-verification.exception"
+import { TokenMalformedException } from "../exceptions/token-malformed.exception"
+import { GarmrModule } from "../garmr.module"
+import { Authenticatable } from "../interfaces/authenticatable.interface"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import * as jwt from "jsonwebtoken"
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm"
@@ -44,24 +45,36 @@ describe("TokenService", () => {
   })
 
   describe("issue", () => {
-    it("should create a signed JWT", () => {
+    it("should return a signed JWT token", () => {
       const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
+      const { token } = service.issue(authenticated)
       expect(() => jwt.verify(token, secret)).not.toThrow()
     })
 
-    it("should include sub, iat, and exp in the payload", () => {
+    it("should return the payload with sub, iat, exp, and nbf", () => {
       const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
-      const payload = jwt.decode(token) as jwt.JwtPayload
+      const { payload } = service.issue(authenticated)
 
       const now = Math.floor(Date.now() / 1000)
 
       expect(payload).toMatchObject({
         sub: authenticated.id,
         iat: expect.toBeWithin(now - 1, now + 2),
-        nbf: payload.iat!,
-        exp: payload.iat! + 3600,
+        nbf: payload.iat,
+        exp: payload.iat + 3600,
+      })
+    })
+
+    it("should return a payload that matches the decoded token", () => {
+      const authenticated = { id: faker.string.uuid() }
+      const { token, payload } = service.issue(authenticated)
+      const decoded = jwt.decode(token) as jwt.JwtPayload
+
+      expect(payload).toEqual({
+        sub: decoded.sub,
+        iat: decoded.iat,
+        nbf: decoded.nbf,
+        exp: decoded.exp,
       })
     })
   })
@@ -69,7 +82,7 @@ describe("TokenService", () => {
   describe("verify", () => {
     it("should return the payload for a valid token", () => {
       const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
+      const { token } = service.issue(authenticated)
 
       const payload = service.verify(token)
 
@@ -98,7 +111,7 @@ describe("TokenService", () => {
   describe("decode", () => {
     it("should return the payload without verifying signature", () => {
       const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
+      const { token } = service.issue(authenticated)
 
       const payload = service.decode(token)
 

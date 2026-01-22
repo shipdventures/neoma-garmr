@@ -6,7 +6,6 @@ import {
 } from "@nestjs/common"
 import { EventEmitterModule } from "@nestjs/event-emitter"
 
-import { CredentialsController } from "./controllers/credentials.controller"
 import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
 import { Authenticatable } from "./interfaces/authenticatable.interface"
 import { AuthenticationMiddleware } from "./middlewares/authentication.middleware"
@@ -48,6 +47,7 @@ export class GarmrModule implements NestModule {
   ): DynamicModule {
     return {
       module: GarmrModule,
+      global: true,
       imports: [EventEmitterModule.forRoot()],
       providers: [
         {
@@ -60,7 +60,6 @@ export class GarmrModule implements NestModule {
         TokenService,
       ],
       exports: [AuthenticationService, RegistrationService, TokenService],
-      controllers: [CredentialsController],
     }
   }
 }

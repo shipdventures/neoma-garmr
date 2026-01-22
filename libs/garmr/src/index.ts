@@ -7,6 +7,7 @@ export * from "./events/garmr-registered.event"
 export * from "./events/garmr-authenticated.event"
 export * from "./exceptions/email-already-exists.exception"
 export * from "./exceptions/incorrect-credentials.exception"
+export * from "./exceptions/invalid-credentials.exception"
 export * from "./exceptions/token-failed-verification.exception"
 export * from "./exceptions/token-malformed.exception"
 export * from "./dtos/email.dto"
@@ -17,8 +18,3 @@ export * from "./dtos/registration.dto"
 export * from "./guards/authenticated.guard"
 export * from "./decorators/principal.decorator"
 export * from "./middlewares/authentication.middleware"
-export * from "./controllers/credentials.controller"
-
-import { CredentialsController } from "./controllers/credentials.controller"
-
-export const Controllers = [CredentialsController]
