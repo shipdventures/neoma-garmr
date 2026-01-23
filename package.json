@@ -9,8 +9,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "tsc -p ./libs/garmr/tsconfig.lib.json ",
-    "build:schematics": "cp -r ./libs/garmr/src/schematics/auth/files ./libs/garmr/dist/schematics/auth/ && cp ./libs/garmr/src/schematics/collection.json ./libs/garmr/dist/schematics/ && cp ./libs/garmr/src/schematics/auth/schema.json ./libs/garmr/dist/schematics/auth/",
+    "build": "tsc -p ./libs/garmr/tsconfig.lib.json",
     "lint": "eslint .",
     "test": "node node_modules/.bin/jest --watch --runInBand",
     "test:e2e": "NEOMA_MANAGED_APP_MODULE_PATH=src/app.module.ts#AppModule node node_modules/.bin/jest --config ./specs/jest-e2e.json --watch --runInBand"
