@@ -1,5 +1,3 @@
-import { join } from "path"
-
 import { strings } from "@angular-devkit/core"
 import {
   Rule,
@@ -14,20 +12,32 @@ import {
 } from "@angular-devkit/schematics"
 
 interface AuthSchematicOptions {
-  name: string
+  path: string
   mode: "api" | "html"
+  authentication: "cookie" | "bearer"
 }
 
 export function main(options: AuthSchematicOptions): Rule {
   return (tree: Tree, context: SchematicContext) => {
-    const templateSource = apply(url("./files/ts"), [
+    const sharedTemplates = apply(url("./files/ts"), [
       template({
         ...strings,
         ...options,
       }),
-      move(join(options.name, "auth")),
+      move(options.path),
     ])
 
-    return chain([mergeWith(templateSource)])(tree, context)
+    const authTemplates = apply(url(`./files/${options.authentication}`), [
+      template({
+        ...strings,
+        ...options,
+      }),
+      move(options.path),
+    ])
+
+    return chain([mergeWith(sharedTemplates), mergeWith(authTemplates)])(
+      tree,
+      context,
+    )
   }
 }

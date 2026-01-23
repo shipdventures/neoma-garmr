@@ -4,21 +4,23 @@
   "title": "Garmr Auth Schematic Options",
   "type": "object",
   "properties": {
-    "name": {
+    "path": {
       "type": "string",
       "format": "path",
       "description": "The path to create the auth module.",
-      "default": "src",
-      "$default": {
-        "$source": "argv",
-        "index": 0
-      }
+      "default": "src/auth"
     },
     "mode": {
       "type": "string",
       "description": "The output mode for controllers.",
       "default": "api",
       "enum": ["api", "html"]
+    },
+    "authentication": {
+      "type": "string",
+      "description": "The authentication response method.",
+      "default": "cookie",
+      "enum": ["cookie", "bearer"]
     }
   }
 }

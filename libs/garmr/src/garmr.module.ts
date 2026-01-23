@@ -8,7 +8,8 @@ import { EventEmitterModule } from "@nestjs/event-emitter"
 
 import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
 import { Authenticatable } from "./interfaces/authenticatable.interface"
-import { AuthenticationMiddleware } from "./middlewares/authentication.middleware"
+import { BearerAuthenticationMiddleware } from "./middlewares/bearer-authentication.middleware"
+import { CookieAuthenticationMiddleware } from "./middlewares/cookie-authentication.middleware"
 import { AuthenticationService } from "./services/authentication.service"
 import { PasswordService } from "./services/password.service"
 import { RegistrationService } from "./services/registration.service"
@@ -39,7 +40,9 @@ import { TokenService } from "./services/token.service"
 @Module({})
 export class GarmrModule implements NestModule {
   public configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuthenticationMiddleware).forRoutes("*")
+    consumer
+      .apply(BearerAuthenticationMiddleware, CookieAuthenticationMiddleware)
+      .forRoutes("*")
   }
 
   public static forRoot<T extends Authenticatable>(

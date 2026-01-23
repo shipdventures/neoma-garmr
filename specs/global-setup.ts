@@ -13,7 +13,12 @@ export default async (): Promise<void> => {
     stdio: "inherit",
   })
 
-  execSync("nest g -c @neoma/garmr auth src/api --no-spec", {
+  execSync("npm run build:schematics", {
+    cwd: projectRoot,
+    stdio: "inherit",
+  })
+
+  execSync("nest g -c @neoma/garmr auth --path src/api/auth --no-spec", {
     cwd: projectRoot,
     stdio: "inherit",
   })

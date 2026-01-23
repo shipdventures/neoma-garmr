@@ -7,10 +7,11 @@ import {
 
 /**
  * Guard that only allows access to a [Controller](https://docs.nestjs.com/controllers)
- * if there is a authenticated principal.
+ * if there is an authenticated principal.
  *
- * It is recommended to use this in conjunction with the {@link AuthenticationMiddleware}
- * it sets req.principal when there is an authenticated session.
+ * It is recommended to use this in conjunction with an authentication middleware
+ * (e.g. {@link BearerAuthenticationMiddleware}) which sets req.principal when
+ * there is an authenticated session.
  */
 @Injectable()
 export class Authenticated implements CanActivate {

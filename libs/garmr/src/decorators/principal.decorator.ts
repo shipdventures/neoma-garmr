@@ -25,7 +25,7 @@ export const Principal = createParamDecorator(
     const req = context.switchToHttp().getRequest()
     if (!req.principal) {
       throw new Error(
-        "PrincipalDecorator called without a principal, have you installed the AuthenticationMiddleware?",
+        "PrincipalDecorator called without a principal, have you installed an authentication middleware?",
       )
     }
     return req.principal

@@ -34,7 +34,7 @@ export class AuthenticationService {
   ) {}
 
   /**
-   * Authenticates a user by validating their credentials (email and password, or bearer token).
+   * Authenticates a user by validating their credentials (email and password, or JWT token).
    *
    * Supports two authentication modes:
    *
@@ -42,15 +42,15 @@ export class AuthenticationService {
    * - Email lookup is case-insensitive (`John@Example.com` matches `john@example.com`)
    * - Password is validated against the stored bcrypt hash
    *
-   * **Bearer mode** - Pass an Authorization header string:
-   * - Scheme is case-insensitive (`Bearer`, `bearer`, `BEARER` all work)
+   * **Token mode** - Pass a raw JWT token string:
    * - Token is verified against the configured secret
    * - User is looked up by the `sub` claim in the JWT payload
    *
-   * @param credentials - Email/password object or Authorization header string
+   * @param credentials - Email/password object or raw JWT token string
    * @returns The authenticated entity
    * @throws {@link IncorrectCredentialsException} if email not found, password wrong, or user in token doesn't exist
-   * @throws {@link InvalidCredentialsException} if token isn't provided, scheme is wrong, token is malformed/expired/not-yet-valid, or missing `sub` claim
+   * @throws {@link InvalidCredentialsException} if token is malformed/expired/not-yet-valid, or missing `sub` claim
+   * @throws {Error} if credentials is null/undefined, or email/password fields are missing
    *
    * @example
    * ```typescript
@@ -66,11 +66,8 @@ export class AuthenticationService {
    *   password: 'secret123',
    * })
    *
-   * // With bearer token (from Authorization header)
-   * const user = await authenticationService.authenticate('Bearer eyJhbG...')
-   *
-   * // Bearer scheme is case-insensitive
-   * const user = await authenticationService.authenticate('bearer eyJhbG...')
+   * // With raw JWT token
+   * const user = await authenticationService.authenticate('eyJhbGciOiJIUzI1NiIs...')
    * ```
    *
    * @fires garmr.authenticated
@@ -79,6 +76,12 @@ export class AuthenticationService {
   public async authenticate<T extends Authenticatable>(
     credentials: string | Pick<Authenticatable, "email" | "password">,
   ): Promise<T> {
+    if (credentials === null || credentials === undefined) {
+      throw new Error(
+        "InvalidArgument: credentials cannot be null or undefined",
+      )
+    }
+
     return typeof credentials === "string"
       ? this.authenticateJwt(credentials)
       : this.authenticateCredentials(credentials)
@@ -90,6 +93,13 @@ export class AuthenticationService {
   private async authenticateCredentials<T extends Authenticatable>(
     credentials: Pick<Authenticatable, "email" | "password">,
   ): Promise<T> {
+    if (!credentials.email) {
+      throw new Error("InvalidArgument: email is required")
+    }
+    if (!credentials.password) {
+      throw new Error("InvalidArgument: password is required")
+    }
+
     const repo = this.datasource.getRepository<T>(this.options.entity)
     const entity = await repo.findOne({
       where: { email: credentials.email.toLowerCase() } as any,

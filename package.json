@@ -9,7 +9,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "tsc -p ./libs/garmr/tsconfig.lib.json && npm run build:schematics",
+    "build": "tsc -p ./libs/garmr/tsconfig.lib.json ",
     "build:schematics": "cp -r ./libs/garmr/src/schematics/auth/files ./libs/garmr/dist/schematics/auth/ && cp ./libs/garmr/src/schematics/collection.json ./libs/garmr/dist/schematics/ && cp ./libs/garmr/src/schematics/auth/schema.json ./libs/garmr/dist/schematics/auth/",
     "lint": "eslint .",
     "test": "node node_modules/.bin/jest --watch --runInBand",

@@ -16,7 +16,7 @@ describe("Auth Schematic", () => {
 
   beforeEach(async () => {
     runner = new SchematicTestRunner("garmr", collectionPath)
-    tree = await runner.runSchematic("auth", { path: "src" })
+    tree = await runner.runSchematic("auth", { path: "src/auth" })
   })
 
   it("should generate auth.module.ts", () => {

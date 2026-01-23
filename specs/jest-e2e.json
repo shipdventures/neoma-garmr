@@ -7,7 +7,13 @@
   "globalSetup": "<rootDir>/../specs/global-setup.ts",
   "globalTeardown": "<rootDir>/../specs/global-teardown.ts",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": "tsconfig.json",
+        "isolatedModules": true
+      }
+    ]
   },
   "moduleNameMapper": {
     "^fixtures/(.*)$": "<rootDir>/../fixtures/$1",

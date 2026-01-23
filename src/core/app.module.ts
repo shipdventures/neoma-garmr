@@ -1,7 +1,6 @@
 import { GarmrModule } from "@neoma/garmr"
 import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
-
 import { User } from "specs/shared/user.entity"
 
 import { CredentialsController } from "./credentials.controller"

@@ -65,7 +65,7 @@ describe("PrincipalDecorator", () => {
         executionContext(express.request(), express.response())
       )
       expect(() => decorator(null, context)).toThrow(
-        "PrincipalDecorator called without a principal, have you installed the AuthenticationMiddleware?",
+        "PrincipalDecorator called without a principal, have you installed an authentication middleware?",
       )
     })
   })

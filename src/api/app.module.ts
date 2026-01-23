@@ -1,5 +1,6 @@
 import { GarmrModule } from "@neoma/garmr"
-import { Module } from "@nestjs/common"
+import { ClassSerializerInterceptor, Module } from "@nestjs/common"
+import { APP_INTERCEPTOR } from "@nestjs/core"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { User } from "specs/shared/user.entity"
 
@@ -19,6 +20,12 @@ import { AuthModule } from "./auth/auth.module"
       entity: User,
     }),
     AuthModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClassSerializerInterceptor,
+    },
   ],
 })
 export class AppModule {}

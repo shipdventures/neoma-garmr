@@ -271,22 +271,6 @@ describe("AuthenticationService", () => {
       })
     })
 
-    describe("When it's called without a JWT", () => {
-      it("it should throw an InvalidCredentialsException", async () => {
-        await expect(
-          service.authenticate(undefined as unknown as string),
-        ).rejects.toMatchError(InvalidCredentialsException, {
-          message: "Invalid JWT: JWT not provided",
-        })
-      })
-
-      it("should not emit a 'garmr.authenticated' event", async () => {
-        const emitSpy = jest.spyOn(eventEmitter, "emit")
-        await expect(service.authenticate("")).rejects.toThrow()
-        expect(emitSpy).not.toHaveBeenCalled()
-      })
-    })
-
     describe("When called with a JWT without a signature and alg=none", () => {
       let token: string
       beforeEach(() => {
@@ -315,24 +299,6 @@ describe("AuthenticationService", () => {
         expect(emitSpy).not.toHaveBeenCalled()
       })
     })
-
-    // MALFORMED_BEARER_TOKENS.forEach(({ header, desc, err }) => {
-    //   describe(`When called with ${desc}: "${header}"`, () => {
-    //     it("it should throw an InvalidCredentialsException", async () => {
-    //       await expect(
-    //         service.authenticate({ authorization: header }),
-    //       ).rejects.toMatchError(InvalidCredentialsException, { message: err })
-    //     })
-    //
-    //     it("should not emit a 'garmr.authenticated' event", async () => {
-    //       const emitSpy = jest.spyOn(eventEmitter, "emit")
-    //       await expect(
-    //         service.authenticate({ authorization: header }),
-    //       ).rejects.toThrow()
-    //       expect(emitSpy).not.toHaveBeenCalled()
-    //     })
-    //   })
-    // })
   })
 
   describe("authenticate with invalid parameters", () => {
@@ -343,6 +309,32 @@ describe("AuthenticationService", () => {
         ).rejects.toThrow(
           "InvalidArgument: credentials cannot be null or undefined",
         )
+      })
+    })
+
+    describe("When it's called with undefined", () => {
+      it("it should throw an InvalidArgument Error", async () => {
+        await expect(
+          service.authenticate(undefined as unknown as string),
+        ).rejects.toThrow(
+          "InvalidArgument: credentials cannot be null or undefined",
+        )
+      })
+    })
+
+    describe("When it's called with missing email", () => {
+      it("it should throw an InvalidArgument Error", async () => {
+        await expect(
+          service.authenticate({ email: null as unknown as string, password }),
+        ).rejects.toThrow("InvalidArgument: email is required")
+      })
+    })
+
+    describe("When it's called with missing password", () => {
+      it("it should throw an InvalidArgument Error", async () => {
+        await expect(
+          service.authenticate({ email, password: null as unknown as string }),
+        ).rejects.toThrow("InvalidArgument: password is required")
       })
     })
   })
