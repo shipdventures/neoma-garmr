@@ -4,19 +4,14 @@
  * @example
  * ```typescript
  * import { Authenticatable } from '@neoma/garmr'
- * import { Exclude } from 'class-transformer'
  *
  * @Entity()
  * class User implements Authenticatable {
- *   @PrimaryGeneratedColumn()
- *   id: any
+ *   @PrimaryGeneratedColumn('uuid')
+ *   public id: string
  *
  *   @Column({ unique: true })
- *   email: string
- *
- *   @Column({ nullable: true })
- *   @Exclude() // Recommended: prevents accidental serialization
- *   password: string
+ *   public email: string
  * }
  * ```
  */
@@ -32,12 +27,4 @@ export interface Authenticatable {
    * Add a unique constraint on this column.
    */
   email: string
-
-  /**
-   * Hashed password. Nullable to support OAuth-only users.
-   *
-   * @security Use @Exclude() from class-transformer to prevent
-   * accidental serialization in API responses.
-   */
-  password: string
 }

@@ -13,8 +13,5 @@
     "src/schematics/**/files/**"
   ],
   "tsconfigRootDir": ".",
-  "paths": {
-    "@lib": ["src"],
-    "@lib/*": ["src/*"]
-  }
+  "paths": {}
 }

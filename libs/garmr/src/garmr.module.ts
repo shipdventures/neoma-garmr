@@ -6,17 +6,15 @@ import {
 } from "@nestjs/common"
 import { EventEmitterModule } from "@nestjs/event-emitter"
 
-import { CredentialsController } from "./controllers/credentials.controller"
 import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
 import { Authenticatable } from "./interfaces/authenticatable.interface"
 import { AuthenticationMiddleware } from "./middlewares/authentication.middleware"
 import { AuthenticationService } from "./services/authentication.service"
-import { PasswordService } from "./services/password.service"
-import { RegistrationService } from "./services/registration.service"
+import { MagicLinkService } from "./services/magic-link.service"
 import { TokenService } from "./services/token.service"
 
 /**
- * Authentication module for NestJS applications.
+ * Passwordless authentication module for NestJS applications.
  *
  * @requires TypeOrmModule must be configured in your application.
  *
@@ -31,6 +29,7 @@ import { TokenService } from "./services/token.service"
  *       secret: process.env.JWT_SECRET,
  *       expiresIn: '1h',
  *       entity: User,
+ *       mailer: { ... },
  *     }),
  *   ],
  * })
@@ -55,12 +54,10 @@ export class GarmrModule implements NestModule {
           useValue: options,
         },
         AuthenticationService,
-        PasswordService,
-        RegistrationService,
+        MagicLinkService,
         TokenService,
       ],
-      exports: [AuthenticationService, RegistrationService, TokenService],
-      controllers: [CredentialsController],
+      exports: [AuthenticationService, MagicLinkService, TokenService],
     }
   }
 }

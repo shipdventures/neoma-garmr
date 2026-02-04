@@ -4,8 +4,8 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "setupFilesAfterEnv": ["jest-extended/all"],
-  "globalSetup": "<rootDir>/../specs/global-setup.ts",
-  "globalTeardown": "<rootDir>/../specs/global-teardown.ts",
+  "globalSetup": "<rootDir>/../fixtures/e2e/global-setup.ts",
+  "globalTeardown": "<rootDir>/../fixtures/e2e/global-teardown.ts",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
@@ -15,5 +15,6 @@
     "@lib": "<rootDir>/../libs/garmr/src",
     "@neoma/garmr/(.*)$": "<rootDir>/../libs/garmr/dist/$1",
     "@neoma/garmr": "<rootDir>/../libs/garmr/dist"
-  }
+  },
+  "transformIgnorePatterns": ["node_modules/(?!@faker-js/faker)"]
 }

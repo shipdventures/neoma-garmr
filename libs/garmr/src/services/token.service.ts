@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common"
 import * as jwt from "jsonwebtoken"
+import type { StringValue } from "ms"
 
 import { TokenFailedVerificationException } from "../exceptions/token-failed-verification.exception"
 import { TokenMalformedException } from "../exceptions/token-malformed.exception"
@@ -22,40 +23,41 @@ export class TokenService {
   ) {}
 
   /**
-   * Issues a signed JWT for an authenticated entity.
+   * Issues a signed JWT with the given payload.
    *
-   * @param authenticated - Any object with an `id` property
-   * @returns A signed JWT string with `sub` claim set to the entity's id
-   *
-   * @example
-   * ```typescript
-   * const token = tokenService.issue(user)
-   * // Token payload: { sub: "user-uuid", iat: 1234567890, exp: 1234571490 }
-   * ```
+   * @param payload - The claims to include in the token
+   * @param options - Optional signing options
+   * @param options.expiresIn - Override the default expiration time
+   * @returns Object containing the signed token and decoded payload
    */
-  public issue(authenticated: { id: any }): string {
-    return jwt.sign({ sub: authenticated.id }, this.options.secret, {
-      expiresIn: this.options.expiresIn,
+  public issue(
+    payload: Record<string, any>,
+    options?: { expiresIn?: StringValue | number },
+  ): { token: string; payload: jwt.JwtPayload } {
+    const token = jwt.sign(payload, this.options.secret, {
+      expiresIn: options?.expiresIn ?? this.options.expiresIn,
       notBefore: "0s",
     })
+    const decoded = jwt.decode(token) as jwt.JwtPayload
+
+    return { token, payload: decoded }
   }
 
   /**
-   * Verifies a JWT and returns the authenticated entity reference.
+   * Verifies a JWT and returns the payload.
    *
    * @param token - The JWT string to verify
-   * @returns Object with `id` property from the token's `sub` claim
+   * @returns The verified JWT payload
    *
    * @example
    * ```typescript
-   * const { id } = tokenService.verify(token)
-   * const user = await userRepo.findOne({ where: { id } })
+   * const payload = tokenService.verify(token)
+   * const user = await userRepo.findOne({ where: { id: payload.sub } })
    * ```
    */
-  public verify(token: string): { id: any } {
+  public verify(token: string): jwt.JwtPayload {
     try {
-      const payload = jwt.verify(token, this.options.secret) as jwt.JwtPayload
-      return { id: payload.sub }
+      return jwt.verify(token, this.options.secret) as jwt.JwtPayload
     } catch (error) {
       throw new TokenFailedVerificationException(error as jwt.JsonWebTokenError)
     }
@@ -65,18 +67,18 @@ export class TokenService {
    * Decodes a JWT without verifying its signature.
    *
    * @param token - The JWT string to decode
-   * @returns Object with `id` property from the token's `sub` claim
+   * @returns The decoded JWT payload
    *
    * @example
    * ```typescript
-   * const { id } = tokenService.decode(token)
+   * const payload = tokenService.decode(token)
    * ```
    */
-  public decode(token: string): { id: any } {
+  public decode(token: string): jwt.JwtPayload {
     const payload = jwt.decode(token) as jwt.JwtPayload | null
     if (!payload) {
       throw new TokenMalformedException()
     }
-    return { id: payload.sub }
+    return payload
   }
 }

@@ -1,4 +1,4 @@
-import { faker } from "@faker-js/faker/."
+import { faker } from "@faker-js/faker"
 import { HttpStatus } from "@nestjs/common"
 
 import { IncorrectCredentialsException } from "./incorrect-credentials.exception"

@@ -1,4 +1,4 @@
-import { faker } from "@faker-js/faker/."
+import { faker } from "@faker-js/faker"
 import { EmailAlreadyExistsException } from "@lib"
 import { HttpStatus } from "@nestjs/common"
 
