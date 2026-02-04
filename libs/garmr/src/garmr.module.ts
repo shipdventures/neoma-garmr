@@ -11,6 +11,7 @@ import { Authenticatable } from "./interfaces/authenticatable.interface"
 import { AuthenticationMiddleware } from "./middlewares/authentication.middleware"
 import { AuthenticationService } from "./services/authentication.service"
 import { MagicLinkService } from "./services/magic-link.service"
+import { PermissionService } from "./services/permission.service"
 import { TokenService } from "./services/token.service"
 
 /**
@@ -55,9 +56,15 @@ export class GarmrModule implements NestModule {
         },
         AuthenticationService,
         MagicLinkService,
+        PermissionService,
         TokenService,
       ],
-      exports: [AuthenticationService, MagicLinkService, TokenService],
+      exports: [
+        AuthenticationService,
+        MagicLinkService,
+        PermissionService,
+        TokenService,
+      ],
     }
   }
 }

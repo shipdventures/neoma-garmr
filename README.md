@@ -12,6 +12,7 @@ Password authentication requires secure hashing, strength validation, reset flow
 - JWT session tokens with audience validation
 - Automatic session middleware
 - Route protection with guards and decorators
+- Permission-based authorization with wildcard support
 - Email normalization (case-insensitive)
 - Event emission for registration and authentication
 
@@ -44,6 +45,9 @@ export class User implements Authenticatable {
 
   @Column({ unique: true })
   public email: string
+
+  @Column("simple-array", { default: "" })
+  public permissions: string[] // Optional - for permission-based authorization
 }
 ```
 
@@ -166,6 +170,112 @@ export class ProfileController {
 ```
 
 The `AuthenticationMiddleware` is automatically applied by `GarmrModule`, extracting the JWT from the `Authorization: Bearer <token>` header and attaching the user to `req.principal`.
+
+### 6. Permission-based authorization (optional)
+
+Use `@RequiresPermission()` and `@RequiresAnyPermission()` decorators to enforce permissions:
+
+```typescript
+import {
+  Principal,
+  RequiresAnyPermission,
+  RequiresPermission,
+} from "@neoma/garmr"
+import { Controller, Delete, Get, Param } from "@nestjs/common"
+
+import { User } from "./user.entity"
+
+@Controller("articles")
+export class ArticlesController {
+  // Requires the "read:articles" permission
+  @Get()
+  @RequiresPermission("read:articles")
+  public findAll(@Principal() user: User): Promise<Article[]> {
+    // ...
+  }
+
+  // Requires BOTH "read:articles" AND "write:articles" (AND logic)
+  @Get(":id/edit")
+  @RequiresPermission("read:articles", "write:articles")
+  public edit(@Param("id") id: string, @Principal() user: User): Promise<Article> {
+    // ...
+  }
+
+  // Requires EITHER "admin" OR "delete:articles" (OR logic)
+  @Delete(":id")
+  @RequiresAnyPermission("admin", "delete:articles")
+  public delete(@Param("id") id: string): Promise<void> {
+    // ...
+  }
+}
+```
+
+Permission decorators automatically enforce authentication (401) before checking permissions (403).
+
+#### Wildcard permissions
+
+Garmr supports wildcard permissions:
+
+| Permission | Matches |
+|------------|---------|
+| `*` | Any permission (superuser) |
+| `*:articles` | Any action on articles (`read:articles`, `write:articles`, etc.) |
+| `read:*` | Read action on any resource (`read:articles`, `read:users`, etc.) |
+
+#### Programmatic permission checking
+
+Use `PermissionService` for permission checks in services:
+
+```typescript
+import { PermissionService } from "@neoma/garmr"
+
+@Injectable()
+export class ArticleService {
+  public constructor(private readonly permissionService: PermissionService) {}
+
+  public async update(user: User, articleId: string, data: UpdateDto): Promise<Article> {
+    // Check permission
+    if (!this.permissionService.hasPermission(user, "write:articles")) {
+      throw new ForbiddenException()
+    }
+
+    // Or throw if missing
+    this.permissionService.requirePermission(user, "write:articles")
+
+    // ...
+  }
+}
+```
+
+#### Class-level permissions
+
+Apply permission decorators at the class level to protect all routes:
+
+```typescript
+@Controller("admin")
+@RequiresPermission("read:admin")
+export class AdminController {
+  @Get("dashboard")
+  public dashboard(): Promise<DashboardData> { /* ... */ }
+
+  @Get("settings")
+  public settings(): Promise<Settings> { /* ... */ }
+}
+```
+
+#### Advanced: Combining decorators
+
+You can combine `@RequiresPermission()` and `@RequiresAnyPermission()` on the same method for complex authorization rules. The AND requirements are checked first, then the OR requirements.
+
+```typescript
+// Requires: read:reports AND (admin OR write:reports)
+@Get("reports")
+@RequiresPermission("read:reports")
+@RequiresAnyPermission("admin", "write:reports")
+public getReports(): Promise<Report[]> { /* ... */ }
+```
+
+This is powerful but can be harder to reason about. Consider whether a single decorator with well-designed permissions might be clearer for your use case.
 
 ## Magic Link Flow
 
@@ -292,12 +402,21 @@ Configures the authentication module.
 - `issue(payload, options?): { token: string; payload: JwtPayload }` - Issues a JWT
 - `verify(token: string): JwtPayload` - Verifies and decodes a token
 
+#### PermissionService
+
+- `hasPermission(principal, permission): boolean` - Check if principal has permission
+- `hasAllPermissions(principal, permissions): boolean` - Check if principal has ALL permissions
+- `hasAnyPermission(principal, permissions): boolean` - Check if principal has ANY permission
+- `requirePermission(principal, permission): void` - Throws if missing permission
+- `requireAllPermissions(principal, permissions): void` - Throws if missing any permission
+- `requireAnyPermission(principal, permissions): void` - Throws if missing all permissions
+
 ### Constants
 
 - `MAGIC_LINK_AUDIENCE` - Value: `"magic-link"` - Used for magic link tokens
 - `SESSION_AUDIENCE` - Value: `"session"` - Used for session tokens
 
-### Guards
+### Guards & Permission Decorators
 
 #### Authenticated
 
@@ -307,6 +426,26 @@ A guard that ensures `req.principal` exists. Throws `UnauthorizedException` if n
 @UseGuards(Authenticated)
 @Controller("protected")
 export class ProtectedController {}
+```
+
+#### RequiresPermission
+
+Decorator that requires ALL specified permissions (AND logic). Automatically enforces authentication.
+
+```typescript
+@RequiresPermission("read:articles", "write:articles")
+@Get()
+public edit(): Promise<Article> {}
+```
+
+#### RequiresAnyPermission
+
+Decorator that requires ANY of the specified permissions (OR logic). Automatically enforces authentication.
+
+```typescript
+@RequiresAnyPermission("admin", "delete:articles")
+@Delete(":id")
+public delete(): Promise<void> {}
 ```
 
 ### Decorators
@@ -336,6 +475,7 @@ public getProfile(@Principal() user: User): User {
 | `TokenFailedVerificationException` | 401 | JWT verification failed (expired, invalid signature) |
 | `IncorrectCredentialsException` | 401 | User not found for valid token |
 | `InvalidCredentialsException` | 401 | Bearer token malformed or wrong audience |
+| `PermissionDeniedException` | 403 | Principal lacks required permission |
 
 ### Events
 
@@ -368,10 +508,11 @@ Emitted when an existing user verifies a magic link.
 interface Authenticatable {
   id: any
   email: string
+  permissions?: string[] // Optional - for permission-based authorization
 }
 ```
 
-Implement this on any entity you want to authenticate.
+Implement this on any entity you want to authenticate. The `permissions` array is optional and only needed if using permission-based authorization.
 
 ## Security Considerations
 

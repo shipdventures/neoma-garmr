@@ -6,6 +6,7 @@ import { User } from "../user.entity"
 
 import { MagicLinkController } from "./magic-link.controller"
 import { MeController } from "./me.controller"
+import { AdminController, ProtectedController } from "./protected.controller"
 
 @Module({
   imports: [
@@ -32,6 +33,11 @@ import { MeController } from "./me.controller"
       },
     }),
   ],
-  controllers: [MagicLinkController, MeController],
+  controllers: [
+    AdminController,
+    MagicLinkController,
+    MeController,
+    ProtectedController,
+  ],
 })
 export class AppModule {}
