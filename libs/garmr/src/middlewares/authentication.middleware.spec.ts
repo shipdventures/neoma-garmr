@@ -1,4 +1,4 @@
-import { faker } from "@faker-js/faker/."
+import { faker } from "@faker-js/faker"
 import { AuthenticationService } from "@lib/services/authentication.service"
 import { LoggerService } from "@nestjs/common"
 import { TestingModule, Test } from "@nestjs/testing"

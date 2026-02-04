@@ -1,4 +1,4 @@
-import { faker } from "@faker-js/faker/."
+import { faker } from "@faker-js/faker"
 import { TokenFailedVerificationException } from "@lib/exceptions/token-failed-verification.exception"
 import { TokenMalformedException } from "@lib/exceptions/token-malformed.exception"
 import { GarmrModule } from "@lib/garmr.module"
@@ -7,6 +7,8 @@ import { Test, TestingModule } from "@nestjs/testing"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import * as jwt from "jsonwebtoken"
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm"
+
+import { MailerOptions } from "../garmr.options"
 
 import { TokenService } from "./token.service"
 
@@ -36,7 +38,12 @@ describe("TokenService", () => {
           entities: [User],
           synchronize: true,
         }),
-        GarmrModule.forRoot({ secret, expiresIn, entity: User }),
+        GarmrModule.forRoot({
+          secret,
+          expiresIn,
+          entity: User,
+          mailer: {} as MailerOptions,
+        }),
       ],
     }).compile()
 
@@ -44,36 +51,45 @@ describe("TokenService", () => {
   })
 
   describe("issue", () => {
-    it("should create a signed JWT", () => {
-      const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
-      expect(() => jwt.verify(token, secret)).not.toThrow()
+    it("should create a signed JWT with the given payload", () => {
+      const key = faker.lorem.word()
+      const value = faker.lorem.word()
+      const { token } = service.issue({ [key]: value })
+
+      const decoded = jwt.verify(token, secret) as jwt.JwtPayload
+      expect(decoded[key]).toBe(value)
     })
 
-    it("should include sub, iat, and exp in the payload", () => {
-      const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
+    it("should include iat, nbf, and exp in the payload", () => {
+      const { token } = service.issue({ foo: "bar" })
       const payload = jwt.decode(token) as jwt.JwtPayload
 
       const now = Math.floor(Date.now() / 1000)
 
       expect(payload).toMatchObject({
-        sub: authenticated.id,
         iat: expect.toBeWithin(now - 1, now + 2),
         nbf: payload.iat!,
         exp: payload.iat! + 3600,
       })
     })
+
+    it("should allow overriding expiresIn", () => {
+      const { token } = service.issue({ foo: "bar" }, { expiresIn: "15m" })
+      const payload = jwt.decode(token) as jwt.JwtPayload
+
+      expect(payload.exp).toBe(payload.iat! + 900)
+    })
   })
 
   describe("verify", () => {
-    it("should return the payload for a valid token", () => {
-      const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
+    it("should return the verified payload", () => {
+      const key = faker.lorem.word()
+      const value = faker.lorem.word()
+      const { token } = service.issue({ [key]: value })
 
       const payload = service.verify(token)
 
-      expect(payload).toEqual(authenticated)
+      expect(payload[key]).toBe(value)
     })
 
     it("should throw TokenFailedVerificationException for a token with wrong signature", () => {
@@ -97,12 +113,13 @@ describe("TokenService", () => {
 
   describe("decode", () => {
     it("should return the payload without verifying signature", () => {
-      const authenticated = { id: faker.string.uuid() }
-      const token = service.issue(authenticated)
+      const key = faker.lorem.word()
+      const value = faker.lorem.word()
+      const { token } = service.issue({ [key]: value })
 
       const payload = service.decode(token)
 
-      expect(payload).toEqual(authenticated)
+      expect(payload[key]).toBe(value)
     })
 
     it("should throw TokenMalformedException for a malformed token", () => {

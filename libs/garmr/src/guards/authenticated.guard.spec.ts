@@ -1,4 +1,4 @@
-import { faker } from "@faker-js/faker/."
+import { faker } from "@faker-js/faker"
 import { ExecutionContext, UnauthorizedException } from "@nestjs/common"
 import { Test, TestingModule } from "@nestjs/testing"
 import { Request } from "express"
@@ -43,7 +43,6 @@ describe("Authenticated", () => {
         request.principal = {
           id: faker.string.uuid(),
           email: faker.internet.email(),
-          password: faker.internet.password(),
         }
       })
 

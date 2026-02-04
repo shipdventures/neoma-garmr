@@ -1,15 +1,18 @@
 # @neoma/garmr
 
-A complete email/password authentication library for NestJS applications. Garmr provides registration, authentication, JWT token management, and route protection out of the box.
+Passwordless authentication for NestJS applications. Garmr provides magic link authentication, JWT session management, and route protection out of the box.
+
+## Why Passwordless?
+
+Password authentication requires secure hashing, strength validation, reset flows, and breach checking. Magic links eliminate all of this complexity. The email IS the verification - simpler for developers, fewer security footguns.
 
 ## Features
 
-- User registration with password hashing (bcrypt)
-- Email/password authentication
-- JWT token issuance and verification
+- Magic link authentication (send & verify)
+- JWT session tokens with audience validation
 - Automatic session middleware
 - Route protection with guards and decorators
-- Validation DTOs with customizable error messages
+- Email normalization (case-insensitive)
 - Event emission for registration and authentication
 
 ## Installation
@@ -20,10 +23,8 @@ npm install @neoma/garmr
 
 ### Peer Dependencies
 
-Garmr requires the following peer dependencies:
-
 ```bash
-npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm bcrypt jsonwebtoken class-validator class-transformer
+npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm jsonwebtoken class-validator nodemailer
 ```
 
 ## Getting Started
@@ -34,7 +35,6 @@ Your user entity must implement the `Authenticatable` interface:
 
 ```typescript
 import { Authenticatable } from "@neoma/garmr"
-import { Exclude } from "class-transformer"
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm"
 
 @Entity()
@@ -44,10 +44,6 @@ export class User implements Authenticatable {
 
   @Column({ unique: true })
   public email: string
-
-  @Exclude()
-  @Column()
-  public password: string
 }
 ```
 
@@ -73,6 +69,17 @@ import { User } from "./user.entity"
       secret: process.env.JWT_SECRET,
       expiresIn: "1h",
       entity: User,
+      mailer: {
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT),
+        from: "auth@yourapp.com",
+        subject: "Sign in to YourApp",
+        html: '<a href="https://yourapp.com/auth/verify?token={{token}}">Click to sign in</a>',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      },
     }),
   ],
 })
@@ -81,7 +88,7 @@ export class AppModule {}
 
 ### 3. Enable validation
 
-Garmr exports DTOs (`RegistrationDto`, `CredentialsDto`) with `class-validator` decorators. For validation to work, you must enable `ValidationPipe` in your application. This applies to Garmr's DTOs and any custom DTOs you create.
+Garmr exports `EmailDto` with `class-validator` decorators. For validation to work, enable `ValidationPipe` in your application.
 
 See the [NestJS Validation documentation](https://docs.nestjs.com/techniques/validation) for setup instructions.
 
@@ -91,42 +98,49 @@ Use the provided services to build your authentication endpoints:
 
 ```typescript
 import {
-  AuthenticationService,
-  CredentialsDto,
-  RegistrationDto,
-  RegistrationService,
+  EmailDto,
+  MagicLinkService,
+  SESSION_AUDIENCE,
   TokenService,
 } from "@neoma/garmr"
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common"
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from "@nestjs/common"
 
 import { User } from "./user.entity"
 
 @Controller("auth")
 export class AuthController {
   public constructor(
-    private readonly registrationService: RegistrationService,
-    private readonly authenticationService: AuthenticationService,
+    private readonly magicLinkService: MagicLinkService,
     private readonly tokenService: TokenService,
   ) {}
 
-  @Post("register")
-  public async register(@Body() dto: RegistrationDto): Promise<{ token: string }> {
-    const user = await this.registrationService.register<User>(dto)
-    const token = this.tokenService.issue(user)
-    return { token }
+  @Post("magic-link")
+  @HttpCode(HttpStatus.ACCEPTED)
+  public async sendMagicLink(@Body() dto: EmailDto): Promise<void> {
+    await this.magicLinkService.send(dto.email)
   }
 
-  @Post("login")
-  @HttpCode(HttpStatus.OK)
-  public async login(@Body() dto: CredentialsDto): Promise<{ token: string }> {
-    const user = await this.authenticationService.authenticate(dto)
-    const token = this.tokenService.issue(user)
-    return { token }
+  @Get("verify")
+  public async verify(
+    @Query("token") token: string,
+  ): Promise<{ token: string; user: User; isNewUser: boolean }> {
+    const { entity, isNewUser } = await this.magicLinkService.verify<User>(token)
+    const { token: sessionToken } = this.tokenService.issue({
+      sub: entity.id,
+      aud: SESSION_AUDIENCE,
+    })
+    return { token: sessionToken, user: entity, isNewUser }
   }
 }
 ```
-
-**Token delivery is your choice.** The example above returns the token in the response body. You could also set it as an HttpOnly cookie for browser clients - the implementation is up to you.
 
 ### 5. Protect routes
 
@@ -153,67 +167,65 @@ export class ProfileController {
 
 The `AuthenticationMiddleware` is automatically applied by `GarmrModule`, extracting the JWT from the `Authorization: Bearer <token>` header and attaching the user to `req.principal`.
 
+## Magic Link Flow
+
+1. User submits email → `POST /auth/magic-link`
+2. Server generates JWT with `aud: "magic-link"` and emails verification link
+3. User clicks link → `GET /auth/verify?token=...`
+4. Server validates token, creates user (if new) or finds existing user
+5. Server issues session JWT with `aud: "session"`
+6. Client stores session token for subsequent requests
+
 ## Example Requests
 
-### Registration
+### Request Magic Link
 
 ```bash
-curl -X POST http://localhost:3000/auth/register \
+curl -X POST http://localhost:3000/auth/magic-link \
   -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "SecureP@ss1"}'
+  -d '{"email": "user@example.com"}'
 ```
 
-**Success (201 Created):**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+**Success (202 Accepted):** Empty response, email sent.
 
 **Validation error (400 Bad Request):**
 ```json
 {
   "statusCode": 400,
-  "message": ["A strong password must be least 8 characters long and include at least 1 letter, 1 number, and 1 special character."],
+  "message": ["Please enter a valid email address."],
   "error": "Bad Request"
 }
 ```
 
-**Duplicate email (409 Conflict):**
-```json
-{
-  "statusCode": 409,
-  "message": "The email user@example.com is already registered.",
-  "email": "user@example.com",
-  "error": "Conflict"
-}
-```
-
-### Login
+### Verify Magic Link
 
 ```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "SecureP@ss1"}'
+curl "http://localhost:3000/auth/verify?token=eyJhbGciOiJIUzI1NiIs..."
 ```
 
 **Success (200 OK):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com"
+  },
+  "isNewUser": true
 }
 ```
 
-**Invalid credentials (401 Unauthorized):**
+**Invalid token (401 Unauthorized):**
 ```json
 {
   "statusCode": 401,
-  "message": "Incorrect credentials provided for the identifier user@example.com.",
-  "identifier": "user@example.com"
+  "message": "Invalid magic link token: invalid audience",
+  "reason": "invalid audience",
+  "error": "Unauthorized"
 }
 ```
 
-### Accessing protected routes
+### Accessing Protected Routes
 
 ```bash
 curl http://localhost:3000/me \
@@ -248,24 +260,42 @@ Configures the authentication module.
 | Option | Type | Description |
 |--------|------|-------------|
 | `secret` | `string` | JWT signing secret |
-| `expiresIn` | `string` | Token expiration (e.g., "1h", "7d") |
+| `expiresIn` | `string` | Session token expiration (e.g., "1h", "7d") |
 | `entity` | `Type<Authenticatable>` | Your user entity class |
+| `mailer` | `MailerOptions` | Email configuration (see below) |
+
+#### MailerOptions
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `host` | `string` | SMTP host |
+| `port` | `number` | SMTP port |
+| `from` | `string` | Sender email address |
+| `subject` | `string` | Email subject line |
+| `html` | `string` | Email HTML body (use `{{token}}` placeholder) |
+| `auth.user` | `string` | SMTP username |
+| `auth.pass` | `string` | SMTP password |
 
 ### Services
 
-#### RegistrationService
+#### MagicLinkService
 
-- `register<T>(dto: RegistrationDto): Promise<T>` - Registers a new user with hashed password
+- `send(email: string): Promise<void>` - Sends a magic link email
+- `verify<T>(token: string): Promise<{ entity: T; isNewUser: boolean }>` - Validates token and returns/creates user
 
 #### AuthenticationService
 
-- `authenticate(dto: CredentialsDto): Promise<Authenticatable>` - Validates credentials and returns the user
+- `authenticate<T>(bearerToken: string): Promise<T>` - Validates a session bearer token and returns the user
 
 #### TokenService
 
-- `issue(user: Authenticatable): string` - Issues a JWT for the user
+- `issue(payload, options?): { token: string; payload: JwtPayload }` - Issues a JWT
 - `verify(token: string): JwtPayload` - Verifies and decodes a token
-- `decode(token: string): JwtPayload | null` - Decodes without verification
+
+### Constants
+
+- `MAGIC_LINK_AUDIENCE` - Value: `"magic-link"` - Used for magic link tokens
+- `SESSION_AUDIENCE` - Value: `"session"` - Used for session tokens
 
 ### Guards
 
@@ -294,30 +324,24 @@ public getProfile(@Principal() user: User): User {
 
 ### DTOs
 
-#### RegistrationDto
+#### EmailDto
 
 - `email` - Required, must be valid email format
-- `password` - Required, must meet strength requirements (8+ chars, letter, number, special char)
-
-#### CredentialsDto
-
-- `email` - Required, must be valid email format
-- `password` - Required
 
 ### Exceptions
 
 | Exception | Status | When |
 |-----------|--------|------|
-| `EmailAlreadyExistsException` | 409 | Email already registered |
-| `IncorrectCredentialsException` | 401 | Invalid email or password |
-| `TokenMalformedException` | 401 | JWT is malformed |
-| `TokenFailedVerificationException` | 401 | JWT verification failed |
+| `InvalidMagicLinkTokenException` | 401 | Magic link token invalid or wrong audience |
+| `TokenFailedVerificationException` | 401 | JWT verification failed (expired, invalid signature) |
+| `IncorrectCredentialsException` | 401 | User not found for valid token |
+| `InvalidCredentialsException` | 401 | Bearer token malformed or wrong audience |
 
 ### Events
 
 #### GarmrRegisteredEvent
 
-Emitted after successful registration.
+Emitted when a new user is created via magic link verification.
 
 ```typescript
 import { GarmrRegisteredEvent } from "@neoma/garmr"
@@ -325,7 +349,7 @@ import { OnEvent } from "@nestjs/event-emitter"
 
 @Injectable()
 export class NotificationService {
-  @OnEvent(GarmrRegisteredEvent.event)
+  @OnEvent(GarmrRegisteredEvent.EVENT_NAME)
   public async onRegistered(event: GarmrRegisteredEvent): Promise<void> {
     // Send welcome email, etc.
   }
@@ -334,15 +358,29 @@ export class NotificationService {
 
 #### GarmrAuthenticatedEvent
 
-Emitted after successful authentication.
+Emitted when an existing user verifies a magic link.
+
+### Interfaces
+
+#### Authenticatable
+
+```typescript
+interface Authenticatable {
+  id: any
+  email: string
+}
+```
+
+Implement this on any entity you want to authenticate.
 
 ## Security Considerations
 
-- Passwords are hashed using bcrypt with automatic salt generation
+- Magic link tokens use `aud: "magic-link"` claim, session tokens use `aud: "session"`
+- `AuthenticationService.authenticate()` rejects tokens with wrong audience (prevents using magic links as session tokens)
 - JWTs are verified for signature, expiration, and not-before claims
 - The `alg=none` attack is prevented by requiring signature verification
-- Tokens for non-existent users are rejected
-- Email lookups are case-insensitive
+- Email lookups are case-insensitive (normalized to lowercase)
+- Magic links expire after 15 minutes
 
 ## License
 

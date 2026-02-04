@@ -9,11 +9,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "tsc -p ./libs/garmr/tsconfig.lib.json && npm run build:schematics",
-    "build:schematics": "cp -r ./libs/garmr/src/schematics/auth/files ./libs/garmr/dist/schematics/auth/ && cp ./libs/garmr/src/schematics/collection.json ./libs/garmr/dist/schematics/ && cp ./libs/garmr/src/schematics/auth/schema.json ./libs/garmr/dist/schematics/auth/",
+    "build": "tsc -p ./libs/garmr/tsconfig.lib.json",
     "lint": "eslint .",
-    "test": "node node_modules/.bin/jest --watch --runInBand",
-    "test:e2e": "NEOMA_MANAGED_APP_MODULE_PATH=src/app.module.ts#AppModule node node_modules/.bin/jest --config ./specs/jest-e2e.json --watch --runInBand"
+    "test": "node --env-file=.env.spec node_modules/.bin/jest --watch --runInBand",
+    "test:e2e": "node --env-file=.env.e2e node_modules/.bin/jest --config ./specs/jest-e2e.json --watch --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -24,6 +23,7 @@
     "bcrypt": "^6.0.0",
     "class-validator": "^0.14.3",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^7.0.12",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -44,6 +44,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.13",
     "@types/node": "^25.0.9",
+    "@types/nodemailer": "^7.0.5",
     "@types/supertest": "^6.0.2",
     "class-transformer": "^0.5.1",
     "eslint": "^9.18.0",
@@ -86,6 +87,8 @@
       "<rootDir>/src/",
       "<rootDir>/libs/"
     ],
+    "globalSetup": "<rootDir>/fixtures/specs/global-setup.ts",
+    "globalTeardown": "<rootDir>/fixtures/specs/global-teardown.ts",
     "setupFilesAfterEnv": [
       "jest-extended/all",
       "<rootDir>/fixtures/matchers/index.js"
@@ -94,6 +97,9 @@
       "fixtures/(.*)$": "<rootDir>/fixtures/$1",
       "@lib/(.*)$": "<rootDir>/libs/garmr/src/$1",
       "@lib": "<rootDir>/libs/garmr/src"
-    }
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!@faker-js/faker)"
+    ]
   }
 }
