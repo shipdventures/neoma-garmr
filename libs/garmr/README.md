@@ -38,9 +38,12 @@ const { token } = tokenService.issue({ sub: entity.id, aud: SESSION_AUDIENCE })
 - `MagicLinkService` - Send and verify magic links
 - `AuthenticationService` - Validate session bearer tokens
 - `TokenService` - Issue and verify JWTs
+- `PermissionService` - Check and enforce permissions
 
 ### Guards & Decorators
 - `Authenticated` - Guard for protected routes
+- `RequiresPermission` - Require ALL permissions (AND logic)
+- `RequiresAnyPermission` - Require ANY permission (OR logic)
 - `Principal` - Extract authenticated user
 
 ### DTOs
@@ -49,6 +52,9 @@ const { token } = tokenService.issue({ sub: entity.id, aud: SESSION_AUDIENCE })
 ### Events
 - `GarmrRegisteredEvent` - New user created
 - `GarmrAuthenticatedEvent` - Existing user authenticated
+
+### Exceptions
+- `PermissionDeniedException` - Permission check failed (403)
 
 ### Constants
 - `MAGIC_LINK_AUDIENCE` - `"magic-link"`

@@ -12,6 +12,9 @@
  *
  *   @Column({ unique: true })
  *   public email: string
+ *
+ *   @Column('simple-array', { default: '' })
+ *   public permissions: string[]
  * }
  * ```
  */
@@ -27,4 +30,11 @@ export interface Authenticatable {
    * Add a unique constraint on this column.
    */
   email: string
+
+  /**
+   * Optional array of permission strings for authorization.
+   * Permissions follow the format `action:resource` (e.g., `read:users`).
+   * Supports wildcards: `*` (superuser), `*:resource`, `action:*`.
+   */
+  permissions?: string[]
 }

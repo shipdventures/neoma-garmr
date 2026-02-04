@@ -16,9 +16,11 @@ The definitive NestJS auth library for SaaS MVPs. Opinionated, secure by default
 - [ ] Cookie-based sessions (httpOnly, secure, sameSite)
 
 ### Phase 2: Authorization
-- [ ] Permission-based authorization
-- [ ] `@RequiresPermission('read:users')` decorator
-- [ ] Permission checking service
+- [x] Permission-based authorization
+- [x] `@RequiresPermission('read:users')` decorator (AND logic)
+- [x] `@RequiresAnyPermission('admin', 'write:users')` decorator (OR logic)
+- [x] `PermissionService` for programmatic permission checking
+- [x] Wildcard support (`*`, `*:resource`, `action:*`)
 
 ### Phase 3: Google OAuth
 - [ ] Google OAuth flow
@@ -71,6 +73,21 @@ Magic links eliminate all of this. The email IS the verification. Simpler for de
 - Send magic link anyway (don't reveal if account exists)
 - If they click, they get logged in (not a new signup)
 - Prevents email enumeration attacks
+
+### Permission-based authorization
+
+- Permissions stored on `Authenticatable` as optional `permissions?: string[]`
+- Format: `action:resource` (e.g., `read:users`, `delete:posts`)
+- Wildcard support:
+  - `*` - superuser, matches any permission
+  - `*:resource` - any action on specific resource
+  - `action:*` - specific action on any resource
+- Two decorators:
+  - `@RequiresPermission()` - AND logic, all permissions required
+  - `@RequiresAnyPermission()` - OR logic, at least one required
+- Decorators work at method or class level
+- Implicit authentication: permission decorators enforce auth (401 before 403)
+- `PermissionService` for programmatic checks in services
 
 ## What Was Removed
 

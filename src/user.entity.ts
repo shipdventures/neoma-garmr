@@ -8,4 +8,7 @@ export class User implements Authenticatable {
 
   @Column({ unique: true })
   public email: string
+
+  @Column("simple-array", { default: "" })
+  public permissions: string[]
 }
