@@ -8,9 +8,11 @@ import { EventEmitterModule } from "@nestjs/event-emitter"
 
 import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
 import { Authenticatable } from "./interfaces/authenticatable.interface"
-import { AuthenticationMiddleware } from "./middlewares/authentication.middleware"
+import { BearerAuthenticationMiddleware } from "./middlewares/bearer-authentication.middleware"
+import { CookieAuthenticationMiddleware } from "./middlewares/cookie-authentication.middleware"
 import { AuthenticationService } from "./services/authentication.service"
 import { MagicLinkService } from "./services/magic-link.service"
+import { SessionService } from "./services/session.service"
 import { TokenService } from "./services/token.service"
 
 /**
@@ -39,7 +41,9 @@ import { TokenService } from "./services/token.service"
 @Module({})
 export class GarmrModule implements NestModule {
   public configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuthenticationMiddleware).forRoutes("*")
+    consumer
+      .apply(BearerAuthenticationMiddleware, CookieAuthenticationMiddleware)
+      .forRoutes("*")
   }
 
   public static forRoot<T extends Authenticatable>(
@@ -47,6 +51,7 @@ export class GarmrModule implements NestModule {
   ): DynamicModule {
     return {
       module: GarmrModule,
+      global: true,
       imports: [EventEmitterModule.forRoot()],
       providers: [
         {
@@ -55,9 +60,15 @@ export class GarmrModule implements NestModule {
         },
         AuthenticationService,
         MagicLinkService,
+        SessionService,
         TokenService,
       ],
-      exports: [AuthenticationService, MagicLinkService, TokenService],
+      exports: [
+        AuthenticationService,
+        MagicLinkService,
+        SessionService,
+        TokenService,
+      ],
     }
   }
 }

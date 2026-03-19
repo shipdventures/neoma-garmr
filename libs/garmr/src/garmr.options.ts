@@ -23,6 +23,22 @@ export interface MailerOptions {
 }
 
 /**
+ * Configuration options for session cookies.
+ */
+export interface CookieOptions {
+  /** Cookie name (default: "garmr.sid") */
+  name?: string
+  /** Cookie domain */
+  domain?: string
+  /** Cookie path (default: "/") */
+  path?: string
+  /** Secure flag — only send over HTTPS (default: true) */
+  secure?: boolean
+  /** SameSite attribute (default: "lax") */
+  sameSite?: "strict" | "lax" | "none"
+}
+
+/**
  * Configuration options for the Garmr authentication module.
  *
  * @typeParam T - The entity class implementing Authenticatable
@@ -52,4 +68,6 @@ export interface GarmrOptions<T extends Authenticatable = Authenticatable> {
   entity: new () => T
   /** Mailer configuration for magic links */
   mailer: MailerOptions
+  /** Session cookie configuration */
+  cookie?: CookieOptions
 }

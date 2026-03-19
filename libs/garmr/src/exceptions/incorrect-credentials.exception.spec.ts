@@ -14,7 +14,7 @@ describe("IncorrectCredentialsException", () => {
     exception = new IncorrectCredentialsException(email)
   })
 
-  it("should have the identifier property", () => {
+  it("should have the identifier property for server-side logging", () => {
     expect(exception.identifier).toBe(email)
   })
 
@@ -29,11 +29,10 @@ describe("IncorrectCredentialsException", () => {
   })
 
   describe("getResponse", () => {
-    it("should return the error details", () => {
+    it("should return statusCode and message without identifier", () => {
       expect(exception.getResponse()).toEqual({
         statusCode: UNAUTHORIZED,
         message,
-        identifier: email,
       })
     })
   })

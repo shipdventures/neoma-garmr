@@ -19,9 +19,6 @@ class User implements Authenticatable {
 
   @Column({ unique: true })
   public email: string
-
-  @Column()
-  public password: string
 }
 
 describe("TokenService", () => {
@@ -73,6 +70,15 @@ describe("TokenService", () => {
       })
     })
 
+    it("should sign tokens with HS256 algorithm", () => {
+      const { token } = service.issue({ foo: "bar" })
+      const header = JSON.parse(
+        Buffer.from(token.split(".")[0], "base64url").toString(),
+      )
+
+      expect(header.alg).toBe("HS256")
+    })
+
     it("should allow overriding expiresIn", () => {
       const { token } = service.issue({ foo: "bar" }, { expiresIn: "15m" })
       const payload = jwt.decode(token) as jwt.JwtPayload
@@ -107,6 +113,28 @@ describe("TokenService", () => {
       expect(() => service.verify(token)).toThrowMatching(
         TokenFailedVerificationException,
         { reason: "expired" },
+      )
+    })
+
+    it("should throw TokenFailedVerificationException for a token signed with alg=none", () => {
+      const header = Buffer.from('{"alg":"none","typ":"JWT"}').toString(
+        "base64url",
+      )
+      const payload = Buffer.from('{"sub":"test"}').toString("base64url")
+      const token = `${header}.${payload}.`
+
+      expect(() => service.verify(token)).toThrowMatching(
+        TokenFailedVerificationException,
+        { reason: "invalid" },
+      )
+    })
+
+    it("should throw TokenFailedVerificationException for a token signed with HS384", () => {
+      const token = jwt.sign({ sub: "test" }, secret, { algorithm: "HS384" })
+
+      expect(() => service.verify(token)).toThrowMatching(
+        TokenFailedVerificationException,
+        { reason: "invalid" },
       )
     })
   })
