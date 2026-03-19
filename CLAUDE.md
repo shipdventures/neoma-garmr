@@ -13,12 +13,12 @@ The definitive NestJS auth library for SaaS MVPs. Opinionated, secure by default
 - [x] `EmailDto` - just email (renamed from InitiateSignupDto)
 - [x] Send magic link email (via configurable transport)
 - [x] On link click: create user, issue session token
-- [ ] Cookie-based sessions (httpOnly, secure, sameSite)
+- [x] Cookie-based sessions (httpOnly, secure, sameSite)
 
 ### Phase 2: Authorization
-- [ ] Permission-based authorization
-- [ ] `@RequiresPermission('read:users')` decorator
-- [ ] Permission checking service
+- [x] Permission-based authorization
+- [x] `@RequiresPermission('read:users')` decorator
+- [x] Permission checking service
 
 ### Phase 3: Google OAuth
 - [ ] Google OAuth flow
