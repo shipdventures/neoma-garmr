@@ -62,7 +62,7 @@ export class SessionService {
       maxAge,
     })
 
-    res.setHeader("Set-Cookie", serialized)
+    this.appendCookie(res, serialized)
 
     return result
   }
@@ -82,6 +82,17 @@ export class SessionService {
       maxAge: 0,
     })
 
-    res.setHeader("Set-Cookie", serialized)
+    this.appendCookie(res, serialized)
+  }
+
+  private appendCookie(res: Response, serialized: string): void {
+    const existing = res.getHeader("Set-Cookie")
+    if (!existing) {
+      res.setHeader("Set-Cookie", serialized)
+    } else if (Array.isArray(existing)) {
+      res.setHeader("Set-Cookie", [...existing, serialized])
+    } else {
+      res.setHeader("Set-Cookie", [String(existing), serialized])
+    }
   }
 }

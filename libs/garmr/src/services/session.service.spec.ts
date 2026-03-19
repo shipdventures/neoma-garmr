@@ -91,6 +91,17 @@ describe("SessionService", () => {
       expect(parsed["garmr.sid"]).toBeDefined()
     })
 
+    it("should append to existing Set-Cookie headers rather than overwrite", () => {
+      const res = express.response() as Response
+      res.setHeader("Set-Cookie", "existing=value")
+      service.create(res, entity as Authenticatable)
+
+      const header = res.getHeader("set-cookie") as string[]
+      expect(header).toHaveLength(2)
+      expect(header[0]).toBe("existing=value")
+      expect(header[1]).toContain("garmr.sid=")
+    })
+
     it("should set httpOnly=true", () => {
       const res = express.response() as Response
       service.create(res, entity as Authenticatable)

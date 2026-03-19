@@ -25,7 +25,7 @@ npm install @neoma/garmr
 ### Peer Dependencies
 
 ```bash
-npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm jsonwebtoken class-validator nodemailer cookie
+npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm jsonwebtoken class-validator nodemailer
 ```
 
 ## Getting Started
@@ -421,7 +421,7 @@ Implement this on any entity you want to authenticate.
 - Magic link tokens use `aud: "magic-link"`, session tokens use `aud: "session"` — cross-use is prevented
 - Session cookies are httpOnly (not accessible to JavaScript), secure (HTTPS only), and SameSite=Lax by default
 - Cookie `Max-Age` is automatically aligned with JWT expiry
-- Error responses do not leak internal details (user identifiers, JWT failure reasons)
+- Error responses use a generic message — internal details are logged server-side only
 - Email lookups are case-insensitive (normalized to lowercase)
 - Magic links expire after 15 minutes
 
