@@ -190,6 +190,21 @@ describe("SessionService", () => {
     })
   })
 
+  describe("cookie configuration validation", () => {
+    it("should throw when sameSite=none and secure=false", async () => {
+      await expect(
+        buildModule({ sameSite: "none", secure: false }),
+      ).rejects.toThrow(
+        'Garmr cookie misconfiguration: sameSite="none" requires secure=true',
+      )
+    })
+
+    it("should allow sameSite=none when secure=true", async () => {
+      const service = await buildModule({ sameSite: "none", secure: true })
+      expect(service).toBeDefined()
+    })
+  })
+
   describe("clear", () => {
     let service: SessionService
 

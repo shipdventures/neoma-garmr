@@ -21,11 +21,21 @@ export class SessionService {
     private readonly tokenService: TokenService,
   ) {
     const opts = this.options.cookie ?? {}
+    const secure = opts.secure ?? true
+    const sameSite = opts.sameSite ?? "lax"
+
+    if (sameSite === "none" && !secure) {
+      throw new Error(
+        'Garmr cookie misconfiguration: sameSite="none" requires secure=true. ' +
+          "Browsers will reject SameSite=None cookies without the Secure flag.",
+      )
+    }
+
     this.cookieOptions = {
       name: opts.name ?? "garmr.sid",
       path: opts.path ?? "/",
-      secure: opts.secure ?? true,
-      sameSite: opts.sameSite ?? "lax",
+      secure,
+      sameSite,
       domain: opts.domain,
     }
   }
