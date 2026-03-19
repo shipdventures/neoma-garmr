@@ -11,9 +11,7 @@ import { GarmrOptions, GARMR_OPTIONS } from "../garmr.options"
  *
  * @example
  * ```typescript
- * const user = await authService.authenticate(credentials, User)
- * const token = tokenService.issue(user)
- * res.cookie('token', token, { httpOnly: true })
+ * const { token } = tokenService.issue({ sub: user.id, aud: "session" })
  * ```
  */
 @Injectable()
@@ -35,6 +33,7 @@ export class TokenService {
     options?: { expiresIn?: StringValue | number },
   ): { token: string; payload: jwt.JwtPayload } {
     const token = jwt.sign(payload, this.options.secret, {
+      algorithm: "HS256",
       expiresIn: options?.expiresIn ?? this.options.expiresIn,
       notBefore: "0s",
     })
@@ -57,7 +56,9 @@ export class TokenService {
    */
   public verify(token: string): jwt.JwtPayload {
     try {
-      return jwt.verify(token, this.options.secret) as jwt.JwtPayload
+      return jwt.verify(token, this.options.secret, {
+        algorithms: ["HS256"],
+      }) as jwt.JwtPayload
     } catch (error) {
       throw new TokenFailedVerificationException(error as jwt.JsonWebTokenError)
     }

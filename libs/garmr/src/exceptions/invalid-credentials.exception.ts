@@ -1,25 +1,13 @@
 import { HttpException, HttpStatus } from "@nestjs/common"
 
 /**
- * Thrown when authentication fails due to incorrect credentials.
+ * Thrown when authentication fails due to invalid credentials format or token.
  *
- * Returns HTTP 401 Unauthorized. The email is available on the exception
- * for server-side logging/auditing but is also included in the response.
- *
- * @example
- * ```typescript
- * try {
- *   await authenticationService.authenticate(credentials, User)
- * } catch (error) {
- *   if (error instanceof IncorrectCredentialsException) {
- *     this.logger.warn(`Failed login attempt: ${error.email}`)
- *   }
- * }
- * ```
+ * Returns HTTP 401 Unauthorized.
  */
 export class InvalidCredentialsException extends HttpException {
   /**
-   * @param email - The email address used in the failed authentication attempt
+   * @param message - Description of why the credentials are invalid
    */
   public constructor(public readonly message: string) {
     super(message, HttpStatus.UNAUTHORIZED)
@@ -28,7 +16,7 @@ export class InvalidCredentialsException extends HttpException {
   /**
    * Returns the error response body.
    *
-   * @returns Object containing statusCode (401), message, and email
+   * @returns Object containing statusCode (401) and message
    */
   public getResponse(): Record<string, any> {
     return {

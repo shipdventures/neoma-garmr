@@ -1,18 +1,18 @@
 import { HttpException, HttpStatus } from "@nestjs/common"
 
 /**
- * Thrown when authentication fails due to incorrect credentials.
+ * Thrown when authentication fails because the user was not found.
  *
- * Returns HTTP 401 Unauthorized. The email is available on the exception
- * for server-side logging/auditing but is also included in the response.
+ * Returns HTTP 401 Unauthorized. The identifier is available on the exception
+ * for server-side logging/auditing but is NOT included in the response body.
  *
  * @example
  * ```typescript
  * try {
- *   await authenticationService.authenticate(credentials, User)
+ *   await authenticationService.authenticate(token)
  * } catch (error) {
  *   if (error instanceof IncorrectCredentialsException) {
- *     this.logger.warn(`Failed login attempt: ${error.identifier}`)
+ *     this.logger.warn(`Failed auth for: ${error.identifier}`)
  *   }
  * }
  * ```
@@ -32,13 +32,12 @@ export class IncorrectCredentialsException extends HttpException {
   /**
    * Returns the error response body.
    *
-   * @returns Object containing statusCode (401), message, and email
+   * @returns Object containing statusCode (401) and message
    */
   public getResponse(): Record<string, any> {
     return {
       statusCode: this.getStatus(),
       message: this.message,
-      identifier: this.identifier,
     }
   }
 }

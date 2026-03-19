@@ -110,6 +110,10 @@ export const express: ExpressFixtures = {
         clonedHeaders[field] = value
         return this as Response
       },
+      setHeader(name: string, value: string | string[]): Response {
+        clonedHeaders[name.toLowerCase()] = value
+        return this as Response
+      },
       removeHeader(name): void {
         delete clonedHeaders[name]
         delete clonedHeaders[name.toLowerCase()]

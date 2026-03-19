@@ -1,6 +1,6 @@
 # @neoma/garmr
 
-Passwordless authentication for NestJS applications. Garmr provides magic link authentication, JWT session management, and route protection out of the box.
+Passwordless authentication for NestJS applications. Garmr provides magic link authentication, JWT session management, cookie-based sessions, and route protection out of the box.
 
 ## Why Passwordless?
 
@@ -9,8 +9,9 @@ Password authentication requires secure hashing, strength validation, reset flow
 ## Features
 
 - Magic link authentication (send & verify)
-- JWT session tokens with audience validation
-- Automatic session middleware
+- JWT session tokens with HS256 algorithm enforcement and audience validation
+- Cookie-based sessions (httpOnly, secure, sameSite) with configurable options
+- Dual transport: Bearer token and cookie authentication middlewares
 - Route protection with guards and decorators
 - Email normalization (case-insensitive)
 - Event emission for registration and authentication
@@ -24,7 +25,7 @@ npm install @neoma/garmr
 ### Peer Dependencies
 
 ```bash
-npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm jsonwebtoken class-validator nodemailer
+npm install @nestjs/common @nestjs/core @nestjs/typeorm typeorm jsonwebtoken class-validator nodemailer cookie
 ```
 
 ## Getting Started
@@ -80,6 +81,13 @@ import { User } from "./user.entity"
           pass: process.env.SMTP_PASS,
         },
       },
+      cookie: {
+        name: "garmr.sid",  // default
+        secure: true,       // default
+        sameSite: "lax",    // default
+        path: "/",          // default
+        // domain: ".yourapp.com",  // optional
+      },
     }),
   ],
 })
@@ -97,12 +105,7 @@ See the [NestJS Validation documentation](https://docs.nestjs.com/techniques/val
 Use the provided services to build your authentication endpoints:
 
 ```typescript
-import {
-  EmailDto,
-  MagicLinkService,
-  SESSION_AUDIENCE,
-  TokenService,
-} from "@neoma/garmr"
+import { EmailDto, MagicLinkService, SessionService } from "@neoma/garmr"
 import {
   Body,
   Controller,
@@ -111,7 +114,9 @@ import {
   HttpStatus,
   Post,
   Query,
+  Res,
 } from "@nestjs/common"
+import { Response } from "express"
 
 import { User } from "./user.entity"
 
@@ -119,7 +124,7 @@ import { User } from "./user.entity"
 export class AuthController {
   public constructor(
     private readonly magicLinkService: MagicLinkService,
-    private readonly tokenService: TokenService,
+    private readonly sessionService: SessionService,
   ) {}
 
   @Post("magic-link")
@@ -131,16 +136,16 @@ export class AuthController {
   @Get("verify")
   public async verify(
     @Query("token") token: string,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ token: string; user: User; isNewUser: boolean }> {
     const { entity, isNewUser } = await this.magicLinkService.verify<User>(token)
-    const { token: sessionToken } = this.tokenService.issue({
-      sub: entity.id,
-      aud: SESSION_AUDIENCE,
-    })
+    const { token: sessionToken } = this.sessionService.create(res, entity)
     return { token: sessionToken, user: entity, isNewUser }
   }
 }
 ```
+
+`SessionService.create()` issues a session JWT and sets it as an httpOnly cookie on the response. The cookie's `Max-Age` is automatically aligned with the JWT's expiry.
 
 ### 5. Protect routes
 
@@ -165,16 +170,16 @@ export class ProfileController {
 }
 ```
 
-The `AuthenticationMiddleware` is automatically applied by `GarmrModule`, extracting the JWT from the `Authorization: Bearer <token>` header and attaching the user to `req.principal`.
+`GarmrModule` automatically applies `BearerAuthenticationMiddleware` and `CookieAuthenticationMiddleware` to all routes. They extract the JWT from the `Authorization: Bearer <token>` header or the `garmr.sid` cookie respectively, and attach the authenticated user to `req.principal`. Bearer takes priority when both are present.
 
 ## Magic Link Flow
 
-1. User submits email → `POST /auth/magic-link`
+1. User submits email -> `POST /auth/magic-link`
 2. Server generates JWT with `aud: "magic-link"` and emails verification link
-3. User clicks link → `GET /auth/verify?token=...`
+3. User clicks link -> `GET /auth/verify?token=...`
 4. Server validates token, creates user (if new) or finds existing user
-5. Server issues session JWT with `aud: "session"`
-6. Client stores session token for subsequent requests
+5. Server issues session JWT with `aud: "session"` and sets httpOnly cookie
+6. Subsequent requests authenticate via cookie or `Authorization: Bearer <token>` header
 
 ## Example Requests
 
@@ -215,6 +220,8 @@ curl "http://localhost:3000/auth/verify?token=eyJhbGciOiJIUzI1NiIs..."
 }
 ```
 
+The response also includes a `Set-Cookie` header with the session token.
+
 **Invalid token (401 Unauthorized):**
 ```json
 {
@@ -227,9 +234,16 @@ curl "http://localhost:3000/auth/verify?token=eyJhbGciOiJIUzI1NiIs..."
 
 ### Accessing Protected Routes
 
+Via Bearer token:
 ```bash
 curl http://localhost:3000/me \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+Via cookie (set automatically by the verify endpoint):
+```bash
+curl http://localhost:3000/me \
+  -b "garmr.sid=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Success (200 OK):**
@@ -255,14 +269,15 @@ curl http://localhost:3000/me \
 
 #### `GarmrModule.forRoot(options)`
 
-Configures the authentication module.
+Configures the authentication module. The module is global — import it once in your root module.
 
 | Option | Type | Description |
 |--------|------|-------------|
 | `secret` | `string` | JWT signing secret |
-| `expiresIn` | `string` | Session token expiration (e.g., "1h", "7d") |
+| `expiresIn` | `string \| number` | Session token expiration (e.g., "1h", "7d") |
 | `entity` | `Type<Authenticatable>` | Your user entity class |
 | `mailer` | `MailerOptions` | Email configuration (see below) |
+| `cookie` | `CookieOptions` | Session cookie configuration (optional) |
 
 #### MailerOptions
 
@@ -276,6 +291,16 @@ Configures the authentication module.
 | `auth.user` | `string` | SMTP username |
 | `auth.pass` | `string` | SMTP password |
 
+#### CookieOptions
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `name` | `string` | `"garmr.sid"` | Cookie name |
+| `domain` | `string` | — | Cookie domain |
+| `path` | `string` | `"/"` | Cookie path |
+| `secure` | `boolean` | `true` | Only send over HTTPS |
+| `sameSite` | `"strict" \| "lax" \| "none"` | `"lax"` | SameSite attribute |
+
 ### Services
 
 #### MagicLinkService
@@ -283,14 +308,31 @@ Configures the authentication module.
 - `send(email: string): Promise<void>` - Sends a magic link email
 - `verify<T>(token: string): Promise<{ entity: T; isNewUser: boolean }>` - Validates token and returns/creates user
 
+#### SessionService
+
+- `create(res: Response, entity: Authenticatable): { token: string; payload: JwtPayload }` - Issues a session JWT and sets it as an httpOnly cookie
+- `clear(res: Response): void` - Clears the session cookie
+
 #### AuthenticationService
 
-- `authenticate<T>(bearerToken: string): Promise<T>` - Validates a session bearer token and returns the user
+- `authenticate<T>(token: string): Promise<T>` - Validates a raw session JWT and returns the user
 
 #### TokenService
 
-- `issue(payload, options?): { token: string; payload: JwtPayload }` - Issues a JWT
-- `verify(token: string): JwtPayload` - Verifies and decodes a token
+- `issue(payload, options?): { token: string; payload: JwtPayload }` - Issues a JWT (HS256)
+- `verify(token: string): JwtPayload` - Verifies a token (HS256 only)
+
+### Middlewares
+
+#### BearerAuthenticationMiddleware
+
+Extracts JWT from the `Authorization: Bearer <token>` header. Throws `InvalidCredentialsException` for malformed headers. Logs and continues for authentication failures.
+
+#### CookieAuthenticationMiddleware
+
+Extracts JWT from the configured cookie (default `garmr.sid`). Logs and continues for authentication failures.
+
+Both middlewares are automatically applied by `GarmrModule`. Bearer runs first; if it sets `req.principal`, the cookie middleware skips.
 
 ### Constants
 
@@ -335,7 +377,7 @@ public getProfile(@Principal() user: User): User {
 | `InvalidMagicLinkTokenException` | 401 | Magic link token invalid or wrong audience |
 | `TokenFailedVerificationException` | 401 | JWT verification failed (expired, invalid signature) |
 | `IncorrectCredentialsException` | 401 | User not found for valid token |
-| `InvalidCredentialsException` | 401 | Bearer token malformed or wrong audience |
+| `InvalidCredentialsException` | 401 | Token invalid, wrong audience, or malformed header |
 
 ### Events
 
@@ -358,7 +400,7 @@ export class NotificationService {
 
 #### GarmrAuthenticatedEvent
 
-Emitted when an existing user verifies a magic link.
+Emitted when an existing user verifies a magic link or authenticates via session token.
 
 ### Interfaces
 
@@ -373,12 +415,13 @@ interface Authenticatable {
 
 Implement this on any entity you want to authenticate.
 
-## Security Considerations
+## Security
 
-- Magic link tokens use `aud: "magic-link"` claim, session tokens use `aud: "session"`
-- `AuthenticationService.authenticate()` rejects tokens with wrong audience (prevents using magic links as session tokens)
-- JWTs are verified for signature, expiration, and not-before claims
-- The `alg=none` attack is prevented by requiring signature verification
+- JWTs are signed and verified with HS256 only — other algorithms are rejected
+- Magic link tokens use `aud: "magic-link"`, session tokens use `aud: "session"` — cross-use is prevented
+- Session cookies are httpOnly (not accessible to JavaScript), secure (HTTPS only), and SameSite=Lax by default
+- Cookie `Max-Age` is automatically aligned with JWT expiry
+- Error responses do not leak internal details (user identifiers, JWT failure reasons)
 - Email lookups are case-insensitive (normalized to lowercase)
 - Magic links expire after 15 minutes
 

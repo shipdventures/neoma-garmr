@@ -1,9 +1,4 @@
-import {
-  EmailDto,
-  MagicLinkService,
-  SESSION_AUDIENCE,
-  TokenService,
-} from "@neoma/garmr"
+import { MagicLinkService, SessionService, EmailDto } from "@neoma/garmr"
 import {
   Body,
   Controller,
@@ -12,9 +7,11 @@ import {
   HttpStatus,
   Post,
   Query,
+  Res,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common"
+import { Response } from "express"
 
 import { User } from "../user.entity"
 
@@ -29,7 +26,7 @@ interface VerifyResponse {
 export class MagicLinkController {
   public constructor(
     private readonly magicLinkService: MagicLinkService,
-    private readonly tokenService: TokenService,
+    private readonly sessionService: SessionService,
   ) {}
 
   @Post()
@@ -39,14 +36,14 @@ export class MagicLinkController {
   }
 
   @Get("verify")
-  public async verify(@Query("token") token: string): Promise<VerifyResponse> {
+  public async verify(
+    @Query("token") token: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<VerifyResponse> {
     const { entity, isNewUser } =
       await this.magicLinkService.verify<User>(token)
 
-    const { token: sessionToken } = this.tokenService.issue({
-      sub: entity.id,
-      aud: SESSION_AUDIENCE,
-    })
+    const { token: sessionToken } = this.sessionService.create(res, entity)
 
     return {
       token: sessionToken,

@@ -1,12 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
-import { createTransport } from "nodemailer"
+import { createTransport, Transporter } from "nodemailer"
 import { DataSource } from "typeorm"
 
 import { GarmrAuthenticatedEvent } from "../events/garmr-authenticated.event"
 import { GarmrRegisteredEvent } from "../events/garmr-registered.event"
 import { InvalidMagicLinkTokenException } from "../exceptions/invalid-magic-link-token.exception"
-import { GARMR_OPTIONS, GarmrOptions } from "../garmr.options"
+import { GARMR_OPTIONS, GarmrOptions, MailerOptions } from "../garmr.options"
 import { Authenticatable } from "../interfaces/authenticatable.interface"
 
 import { TokenService } from "./token.service"
@@ -31,12 +31,22 @@ export interface MagicLinkVerifyResult<T extends Authenticatable> {
 
 @Injectable()
 export class MagicLinkService {
+  private readonly transport: Transporter
+  private readonly mailer: MailerOptions
+
   public constructor(
     @Inject(GARMR_OPTIONS) private readonly options: GarmrOptions,
     private readonly tokenService: TokenService,
     private readonly datasource: DataSource,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) {
+    this.mailer = this.options.mailer
+    this.transport = createTransport({
+      host: this.mailer.host,
+      port: this.mailer.port,
+      auth: this.mailer.auth,
+    })
+  }
 
   public async send(email: string): Promise<void> {
     const { token } = this.tokenService.issue(
@@ -44,18 +54,12 @@ export class MagicLinkService {
       { expiresIn: "15m" },
     )
 
-    const transport = createTransport({
-      host: this.options.mailer!.host,
-      port: this.options.mailer!.port,
-      auth: this.options.mailer!.auth,
-    })
+    const html = this.mailer.html.replaceAll("{{token}}", token)
 
-    const html = this.options.mailer!.html.replace("{{token}}", token)
-
-    await transport.sendMail({
-      from: this.options.mailer!.from,
+    await this.transport.sendMail({
+      from: this.mailer.from,
       to: email,
-      subject: this.options.mailer!.subject,
+      subject: this.mailer.subject,
       html,
     })
   }
