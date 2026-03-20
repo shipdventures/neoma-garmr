@@ -13,6 +13,7 @@ Password authentication requires secure hashing, strength validation, reset flow
 - Cookie-based sessions (httpOnly, secure, sameSite) with configurable options
 - Dual transport: Bearer token and cookie authentication middlewares
 - Route protection with guards and decorators
+- Permission-based authorization with wildcard support (`@RequiresPermission`, `@RequiresAnyPermission`)
 - Email normalization (case-insensitive)
 - Event emission for registration and authentication
 
@@ -45,6 +46,9 @@ export class User implements Authenticatable {
 
   @Column({ unique: true })
   public email: string
+
+  @Column("simple-array", { default: "" })
+  public permissions: string[]
 }
 ```
 
@@ -334,6 +338,24 @@ Extracts JWT from the configured cookie (default `garmr.sid`). Logs and continue
 
 Both middlewares are automatically applied by `GarmrModule`. Bearer runs first; if it sets `req.principal`, the cookie middleware skips.
 
+#### PermissionService
+
+- `hasPermission(principal, permission): boolean` - Check if a principal has a specific permission
+- `hasAllPermissions(principal, permissions): boolean` - Check if a principal has ALL permissions (AND logic)
+- `hasAnyPermission(principal, permissions): boolean` - Check if a principal has at least one permission (OR logic)
+- `requirePermission(principal, permission): void` - Throws `PermissionDeniedException` if missing
+- `requireAllPermissions(principal, permissions): void` - Throws if any are missing (AND)
+- `requireAnyPermission(principal, permissions): void` - Throws if all are missing (OR)
+
+Valid permission formats:
+- `*` — matches all permissions
+- `name` — single-segment, exact match only (e.g., `admin`)
+- `action:resource` — exact match (e.g., `read:users`)
+- `*:resource` — matches any action on that resource (e.g., `*:articles` matches `read:articles`)
+- `action:*` — matches an action on any resource (e.g., `read:*` matches `read:users`)
+
+Invalid formats (e.g., `read:users:admin`, empty strings) throw at decoration time or at runtime.
+
 ### Constants
 
 - `MAGIC_LINK_AUDIENCE` - Value: `"magic-link"` - Used for magic link tokens
@@ -364,6 +386,48 @@ public getProfile(@Principal() user: User): User {
 }
 ```
 
+#### RequiresPermission
+
+Enforces that the authenticated user has **all** of the specified permissions (AND logic). Automatically applies authentication and the permission guard.
+
+```typescript
+// Single permission
+@Get("articles")
+@RequiresPermission("read:articles")
+public getArticles() {}
+
+// Multiple permissions (AND — user must have both)
+@Get("articles/edit")
+@RequiresPermission("read:articles", "write:articles")
+public editArticles() {}
+
+// Class-level — applies to all methods
+@Controller("admin")
+@RequiresPermission("read:admin")
+export class AdminController {}
+```
+
+#### RequiresAnyPermission
+
+Enforces that the authenticated user has **at least one** of the specified permissions (OR logic).
+
+```typescript
+// User must have admin OR delete:articles
+@Get("articles/delete")
+@RequiresAnyPermission("admin", "delete:articles")
+public deleteArticles() {}
+```
+
+Both decorators can be combined on a single method:
+
+```typescript
+// User must have read:reports AND (admin OR write:reports)
+@Get("reports")
+@RequiresPermission("read:reports")
+@RequiresAnyPermission("admin", "write:reports")
+public getReports() {}
+```
+
 ### DTOs
 
 #### EmailDto
@@ -378,6 +442,7 @@ public getProfile(@Principal() user: User): User {
 | `TokenFailedVerificationException` | 401 | JWT verification failed (expired, invalid signature) |
 | `IncorrectCredentialsException` | 401 | User not found for valid token |
 | `InvalidCredentialsException` | 401 | Token invalid, wrong audience, or malformed header |
+| `PermissionDeniedException` | 403 | User lacks required permission(s) |
 
 ### Events
 
@@ -410,10 +475,11 @@ Emitted when an existing user verifies a magic link or authenticates via session
 interface Authenticatable {
   id: any
   email: string
+  permissions?: string[]
 }
 ```
 
-Implement this on any entity you want to authenticate.
+Implement this on any entity you want to authenticate. The `permissions` field is optional — only needed if you use the permission decorators.
 
 ## Security
 

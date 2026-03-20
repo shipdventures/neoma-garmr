@@ -27,4 +27,11 @@ export interface Authenticatable {
    * Add a unique constraint on this column.
    */
   email: string
+
+  /**
+   * Optional array of permission strings for authorization.
+   * Format: `action:resource` (e.g., `read:users`, `write:articles`).
+   * Supports wildcards: `*` (all permissions), `*:resource`, `action:*`.
+   */
+  permissions?: string[]
 }

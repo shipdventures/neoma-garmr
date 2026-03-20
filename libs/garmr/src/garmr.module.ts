@@ -12,6 +12,7 @@ import { BearerAuthenticationMiddleware } from "./middlewares/bearer-authenticat
 import { CookieAuthenticationMiddleware } from "./middlewares/cookie-authentication.middleware"
 import { AuthenticationService } from "./services/authentication.service"
 import { MagicLinkService } from "./services/magic-link.service"
+import { PermissionService } from "./services/permission.service"
 import { SessionService } from "./services/session.service"
 import { TokenService } from "./services/token.service"
 
@@ -60,12 +61,14 @@ export class GarmrModule implements NestModule {
         },
         AuthenticationService,
         MagicLinkService,
+        PermissionService,
         SessionService,
         TokenService,
       ],
       exports: [
         AuthenticationService,
         MagicLinkService,
+        PermissionService,
         SessionService,
         TokenService,
       ],
