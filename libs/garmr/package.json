@@ -1,7 +1,7 @@
 {
   "name": "@neoma/garmr",
-  "version": "0.1.0",
-  "description": "A fully fledged auth solution for nestjs including username/password, oauth, and api key auth.",
+  "version": "0.4.1",
+  "description": "Passwordless authentication and permission-based authorization for NestJS. Magic links, cookie/bearer sessions, and wildcard permissions.",
   "author": "Shipdventures",
   "repository": {
     "type": "git",
@@ -14,7 +14,10 @@
   "keywords": [
     "nestjs",
     "garmr",
-    "laravel",
+    "auth",
+    "passwordless",
+    "magic-link",
+    "permissions",
     "neoma"
   ],
   "private": false,
