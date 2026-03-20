@@ -17,7 +17,7 @@ import { express } from "./express"
  * switchToHttp().getResponse is called.
  * @param route - Optional controller and method to point the context at,
  * so that guards and decorators can read metadata from the real class.
- * Defaults to "handler" if method is not specified.
+ * Both controller and method are required when route is provided.
  * @returns A partial ExecutionContext that supports switchToHttp
  * and optionally getHandler/getClass.
  */

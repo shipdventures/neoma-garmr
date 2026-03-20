@@ -146,6 +146,10 @@ export class PermissionService {
     principal: Authenticatable,
     permissions: string[],
   ): void {
+    if (permissions.length === 0) {
+      throw new Error("requireAnyPermission() requires at least one permission")
+    }
+
     if (!this.hasAnyPermission(principal, permissions)) {
       throw new PermissionDeniedException(
         permissions,

@@ -274,14 +274,11 @@ describe("PermissionService", () => {
     })
 
     describe("When called with an empty required permissions array", () => {
-      it("should throw with an empty requiredPermissions array", () => {
+      it("should throw an Error", () => {
         const principal = createPrincipal(["read:users"])
-        expect(() =>
-          service.requireAnyPermission(principal, []),
-        ).toThrowMatching(PermissionDeniedException, {
-          requiredPermissions: [],
-          identifier: principal.id,
-        })
+        expect(() => service.requireAnyPermission(principal, [])).toThrow(
+          "requireAnyPermission() requires at least one permission",
+        )
       })
     })
   })
