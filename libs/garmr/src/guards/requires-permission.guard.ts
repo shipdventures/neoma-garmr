@@ -48,17 +48,25 @@ export class RequiresPermissionGuard implements CanActivate {
       )
     }
 
-    // Get required permissions from metadata (AND logic)
-    const requiredAll = this.reflector.getAllAndOverride<string[]>(
-      REQUIRED_PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()],
-    )
+    // Get required permissions from metadata (AND logic), merging class + method
+    const requiredAll = [
+      ...new Set(
+        this.reflector.getAllAndMerge<string[]>(REQUIRED_PERMISSIONS_KEY, [
+          context.getHandler(),
+          context.getClass(),
+        ]) ?? [],
+      ),
+    ]
 
-    // Get required any permissions from metadata (OR logic)
-    const requiredAny = this.reflector.getAllAndOverride<string[]>(
-      REQUIRED_ANY_PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()],
-    )
+    // Get required any permissions from metadata (OR logic), merging class + method
+    const requiredAny = [
+      ...new Set(
+        this.reflector.getAllAndMerge<string[]>(REQUIRED_ANY_PERMISSIONS_KEY, [
+          context.getHandler(),
+          context.getClass(),
+        ]) ?? [],
+      ),
+    ]
 
     const principal = req.principal as Authenticatable
 

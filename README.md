@@ -347,10 +347,14 @@ Both middlewares are automatically applied by `GarmrModule`. Bearer runs first; 
 - `requireAllPermissions(principal, permissions): void` - Throws if any are missing (AND)
 - `requireAnyPermission(principal, permissions): void` - Throws if all are missing (OR)
 
-Supports wildcard matching:
-- `*` — superuser, matches any permission
+Valid permission formats:
+- `*` — matches all permissions
+- `name` — single-segment, exact match only (e.g., `admin`)
+- `action:resource` — exact match (e.g., `read:users`)
 - `*:resource` — matches any action on that resource (e.g., `*:articles` matches `read:articles`)
 - `action:*` — matches an action on any resource (e.g., `read:*` matches `read:users`)
+
+Invalid formats (e.g., `read:users:admin`, empty strings) throw at decoration time or at runtime.
 
 ### Constants
 

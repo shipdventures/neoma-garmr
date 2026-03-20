@@ -6,17 +6,48 @@ import { Request } from "express"
 import { express } from "fixtures/fakes/express"
 import { executionContext } from "fixtures/fakes/nestjs"
 
-import { REQUIRED_ANY_PERMISSIONS_KEY } from "../decorators/requires-any-permission.decorator"
-import { REQUIRED_PERMISSIONS_KEY } from "../decorators/requires-permission.decorator"
+import { RequiresAnyPermission } from "../decorators/requires-any-permission.decorator"
+import { RequiresPermission } from "../decorators/requires-permission.decorator"
 import { PermissionDeniedException } from "../exceptions/permission-denied.exception"
 import { Authenticatable } from "../interfaces/authenticatable.interface"
 import { PermissionService } from "../services/permission.service"
 
 import { RequiresPermissionGuard } from "./requires-permission.guard"
 
+class NoPermissions {
+  public handler(): void {}
+}
+
+class WithAndPermissions {
+  @RequiresPermission("read:users", "write:users")
+  public handler(): void {}
+}
+
+class WithAnyPermissions {
+  @RequiresAnyPermission("admin", "delete:users")
+  public handler(): void {}
+}
+
+class WithBothPermissions {
+  @RequiresPermission("read:users")
+  @RequiresAnyPermission("admin", "write:users")
+  public handler(): void {}
+}
+
+@RequiresPermission("read:admin")
+class ClassLevelPermissions {
+  public handler(): void {}
+
+  @RequiresPermission("write:admin")
+  public restrictedHandler(): void {}
+
+  @RequiresPermission("read:admin")
+  public duplicateHandler(): void {}
+}
+
 describe("RequiresPermissionGuard", () => {
   let guard: RequiresPermissionGuard
-  let reflector: Reflector
+  let request: Partial<Request>
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,7 +55,7 @@ describe("RequiresPermissionGuard", () => {
     }).compile()
 
     guard = module.get(RequiresPermissionGuard)
-    reflector = module.get(Reflector)
+    request = express.request()
   })
 
   const createPrincipal = (permissions: string[] = []): Authenticatable => ({
@@ -33,187 +64,209 @@ describe("RequiresPermissionGuard", () => {
     permissions,
   })
 
-  describe("canActivate()", () => {
-    let request: Partial<Request>
-    let ctx: Partial<ExecutionContext>
-
-    beforeEach(() => {
-      request = express.request()
-      ctx = executionContext(request, express.response())
-
-      // Mock getHandler and getClass for Reflector
-      ctx.getHandler = jest.fn().mockReturnValue(() => {})
-      ctx.getClass = jest.fn().mockReturnValue(class {})
-    })
-
-    describe("When called without an authenticated principal", () => {
-      beforeEach(() => {
-        jest.spyOn(reflector, "getAllAndOverride").mockReturnValue(undefined)
+  describe("When the request has no authenticated principal", () => {
+    it("should throw UnauthorizedException", () => {
+      const ctx = executionContext(request, express.response(), {
+        controller: NoPermissions,
+        method: "handler",
       })
 
-      it("should throw UnauthorizedException", () => {
+      expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+        UnauthorizedException,
+        {
+          message:
+            "Unable to authenticate a principal. Please check the documentation for accepted authentication methods",
+        },
+      )
+    })
+  })
+
+  describe("When the request has an authenticated principal", () => {
+    describe("Given a handler with no permission decorators", () => {
+      it("should return true", () => {
+        request.principal = createPrincipal([])
+        const ctx = executionContext(request, express.response(), {
+          controller: NoPermissions,
+          method: "handler",
+        })
+
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
+      })
+    })
+
+    describe("Given a handler requiring read:users and write:users", () => {
+      it("should allow a principal with both permissions", () => {
+        request.principal = createPrincipal([
+          "read:users",
+          "write:users",
+          "delete:users",
+        ])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithAndPermissions,
+          method: "handler",
+        })
+
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
+      })
+
+      it("should deny a principal missing write:users", () => {
+        request.principal = createPrincipal(["read:users"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithAndPermissions,
+          method: "handler",
+        })
+
         expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
-          UnauthorizedException,
+          PermissionDeniedException,
           {
-            message:
-              "Unable to authenticate a principal. Please check the documentation for accepted authentication methods",
+            requiredPermissions: ["write:users"],
+          },
+        )
+      })
+
+      it("should allow a principal with *", () => {
+        request.principal = createPrincipal(["*"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithAndPermissions,
+          method: "handler",
+        })
+
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
+      })
+    })
+
+    describe("Given a handler requiring admin or delete:users", () => {
+      it("should allow a principal with delete:users", () => {
+        request.principal = createPrincipal(["delete:users"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithAnyPermissions,
+          method: "handler",
+        })
+
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
+      })
+
+      it("should deny a principal with neither", () => {
+        request.principal = createPrincipal(["read:users"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithAnyPermissions,
+          method: "handler",
+        })
+
+        expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+          PermissionDeniedException,
+          {
+            requiredPermissions: ["admin", "delete:users"],
           },
         )
       })
     })
 
-    describe("When called with an authenticated principal", () => {
-      describe("Given no permission requirements", () => {
-        beforeEach(() => {
-          request.principal = createPrincipal([])
-          jest.spyOn(reflector, "getAllAndOverride").mockReturnValue(undefined)
+    describe("Given a handler requiring read:users and (admin or write:users)", () => {
+      it("should allow a principal with read:users and write:users", () => {
+        request.principal = createPrincipal(["read:users", "write:users"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithBothPermissions,
+          method: "handler",
         })
 
-        it("should return true", () => {
-          expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
-        })
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
       })
 
-      describe("Given @RequiresPermission() metadata (AND logic)", () => {
-        beforeEach(() => {
-          jest
-            .spyOn(reflector, "getAllAndOverride")
-            .mockImplementation((key: string) => {
-              if (key === REQUIRED_PERMISSIONS_KEY) {
-                return ["read:users", "write:users"]
-              }
-              return undefined
-            })
+      it("should deny a principal with read:users but neither admin nor write:users", () => {
+        request.principal = createPrincipal(["read:users"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithBothPermissions,
+          method: "handler",
         })
 
-        describe("When principal has all required permissions", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal([
-              "read:users",
-              "write:users",
-              "delete:users",
-            ])
-          })
-
-          it("should return true", () => {
-            expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
-          })
-        })
-
-        describe("When principal is missing one permission", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["read:users"])
-          })
-
-          it("should throw PermissionDeniedException", () => {
-            expect(() =>
-              guard.canActivate(<ExecutionContext>ctx),
-            ).toThrowMatching(PermissionDeniedException, {
-              permission: "write:users",
-            })
-          })
-        })
-
-        describe("When principal has superuser wildcard", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["*"])
-          })
-
-          it("should return true", () => {
-            expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
-          })
-        })
+        expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+          PermissionDeniedException,
+          {
+            requiredPermissions: ["admin", "write:users"],
+          },
+        )
       })
 
-      describe("Given @RequiresAnyPermission() metadata (OR logic)", () => {
-        beforeEach(() => {
-          jest
-            .spyOn(reflector, "getAllAndOverride")
-            .mockImplementation((key: string) => {
-              if (key === REQUIRED_ANY_PERMISSIONS_KEY) {
-                return ["admin", "delete:users"]
-              }
-              return undefined
-            })
+      it("should deny a principal with admin but not read:users", () => {
+        request.principal = createPrincipal(["admin"])
+        const ctx = executionContext(request, express.response(), {
+          controller: WithBothPermissions,
+          method: "handler",
         })
 
-        describe("When principal has one of the required permissions", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["delete:users"])
-          })
+        expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+          PermissionDeniedException,
+          {
+            requiredPermissions: ["read:users"],
+          },
+        )
+      })
+    })
 
-          it("should return true", () => {
-            expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
-          })
+    describe("Given a controller requiring read:admin and a method requiring write:admin", () => {
+      it("should allow a principal with both read:admin and write:admin", () => {
+        request.principal = createPrincipal(["read:admin", "write:admin"])
+        const ctx = executionContext(request, express.response(), {
+          controller: ClassLevelPermissions,
+          method: "restrictedHandler",
         })
 
-        describe("When principal has none of the required permissions", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["read:users"])
-          })
-
-          it("should throw PermissionDeniedException", () => {
-            expect(() =>
-              guard.canActivate(<ExecutionContext>ctx),
-            ).toThrowMatching(PermissionDeniedException, {
-              permission: "admin | delete:users",
-            })
-          })
-        })
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
       })
 
-      describe("Given both @RequiresPermission and @RequiresAnyPermission metadata", () => {
-        beforeEach(() => {
-          jest
-            .spyOn(reflector, "getAllAndOverride")
-            .mockImplementation((key: string) => {
-              if (key === REQUIRED_PERMISSIONS_KEY) {
-                return ["read:users"]
-              }
-              if (key === REQUIRED_ANY_PERMISSIONS_KEY) {
-                return ["admin", "write:users"]
-              }
-              return undefined
-            })
+      it("should deny a principal with only read:admin", () => {
+        request.principal = createPrincipal(["read:admin"])
+        const ctx = executionContext(request, express.response(), {
+          controller: ClassLevelPermissions,
+          method: "restrictedHandler",
         })
 
-        describe("When principal satisfies both requirements", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["read:users", "write:users"])
-          })
+        expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+          PermissionDeniedException,
+          {
+            requiredPermissions: ["write:admin"],
+          },
+        )
+      })
 
-          it("should return true", () => {
-            expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
-          })
+      it("should deny a principal with only write:admin", () => {
+        request.principal = createPrincipal(["write:admin"])
+        const ctx = executionContext(request, express.response(), {
+          controller: ClassLevelPermissions,
+          method: "restrictedHandler",
         })
 
-        describe("When principal satisfies AND but not OR", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["read:users"])
-          })
+        expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+          PermissionDeniedException,
+          {
+            requiredPermissions: ["read:admin"],
+          },
+        )
+      })
+    })
 
-          it("should throw PermissionDeniedException for OR requirement", () => {
-            expect(() =>
-              guard.canActivate(<ExecutionContext>ctx),
-            ).toThrowMatching(PermissionDeniedException, {
-              permission: "admin | write:users",
-            })
-          })
+    describe("Given a controller requiring read:admin and a method with no additional permissions", () => {
+      it("should allow a principal with read:admin", () => {
+        request.principal = createPrincipal(["read:admin"])
+        const ctx = executionContext(request, express.response(), {
+          controller: ClassLevelPermissions,
+          method: "handler",
         })
 
-        describe("When principal satisfies OR but not AND", () => {
-          beforeEach(() => {
-            request.principal = createPrincipal(["admin"])
-          })
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
+      })
+    })
 
-          it("should throw PermissionDeniedException for AND requirement", () => {
-            expect(() =>
-              guard.canActivate(<ExecutionContext>ctx),
-            ).toThrowMatching(PermissionDeniedException, {
-              permission: "read:users",
-            })
-          })
+    describe("Given a controller and method both requiring read:admin", () => {
+      it("should deduplicate and allow a principal with read:admin", () => {
+        request.principal = createPrincipal(["read:admin"])
+        const ctx = executionContext(request, express.response(), {
+          controller: ClassLevelPermissions,
+          method: "duplicateHandler",
         })
+
+        expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
       })
     })
   })

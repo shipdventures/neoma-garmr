@@ -1,6 +1,7 @@
 import { applyDecorators, SetMetadata, UseGuards } from "@nestjs/common"
 
 import { RequiresPermissionGuard } from "../guards/requires-permission.guard"
+import { PermissionService } from "../services/permission.service"
 
 /**
  * Metadata key for storing required permissions (OR logic).
@@ -31,6 +32,13 @@ export const REQUIRED_ANY_PERMISSIONS_KEY = "garmr:required_any_permissions"
 export function RequiresAnyPermission(
   ...permissions: string[]
 ): ClassDecorator & MethodDecorator {
+  if (permissions.length === 0) {
+    throw new Error(
+      "@RequiresAnyPermission() requires at least one permission argument",
+    )
+  }
+  permissions.forEach(PermissionService.validateFormat)
+
   return applyDecorators(
     SetMetadata(REQUIRED_ANY_PERMISSIONS_KEY, permissions),
     UseGuards(RequiresPermissionGuard),

@@ -41,7 +41,7 @@ describe("GET /protected/*", () => {
   }
 
   describe("Given a route /protected/articles requiring read:articles", () => {
-    describe("When called without authentication", () => {
+    describe("When an unauthenticated request is made", () => {
       it("should respond with HTTP 401", async () => {
         await request(app.getHttpServer())
           .get("/protected/articles")
@@ -50,7 +50,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a user lacking read:articles permission", () => {
+    describe("When a request is made as a principal with write:articles", () => {
       it("should respond with HTTP 403", async () => {
         const { token } = await createUserWithPermissions(["write:articles"])
 
@@ -61,12 +61,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: read:articles is required.",
-            permission: "read:articles",
+            requiredPermissions: ["read:articles"],
+            permissions: ["write:articles"],
           })
       })
     })
 
-    describe("When called with a user having empty permissions array", () => {
+    describe("When a request is made as a principal with no permissions", () => {
       it("should respond with HTTP 403", async () => {
         const { token } = await createUserWithPermissions([])
 
@@ -77,12 +78,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: read:articles is required.",
-            permission: "read:articles",
+            requiredPermissions: ["read:articles"],
+            permissions: [],
           })
       })
     })
 
-    describe("When called with a user having read:articles permission", () => {
+    describe("When a request is made as a principal with read:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["read:articles"])
 
@@ -94,7 +96,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a superuser (*)", () => {
+    describe("When a request is made as a principal with *", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["*"])
 
@@ -106,7 +108,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with wildcard *:articles", () => {
+    describe("When a request is made as a principal with *:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["*:articles"])
 
@@ -118,7 +120,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with wildcard read:*", () => {
+    describe("When a request is made as a principal with read:*", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["read:*"])
 
@@ -131,8 +133,8 @@ describe("GET /protected/*", () => {
     })
   })
 
-  describe("Given a route /protected/articles/edit requiring read:articles AND write:articles", () => {
-    describe("When called without authentication", () => {
+  describe("Given a route /protected/articles/edit requiring read:articles and write:articles", () => {
+    describe("When an unauthenticated request is made", () => {
       it("should respond with HTTP 401", async () => {
         await request(app.getHttpServer())
           .get("/protected/articles/edit")
@@ -141,7 +143,25 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a user having only read:articles", () => {
+    describe("When a request is made as a principal with neither required permission", () => {
+      it("should respond with HTTP 403 listing all missing permissions", async () => {
+        const { token } = await createUserWithPermissions(["delete:users"])
+
+        await request(app.getHttpServer())
+          .get("/protected/articles/edit")
+          .set("Authorization", `Bearer ${token}`)
+          .expect(FORBIDDEN)
+          .expect({
+            statusCode: FORBIDDEN,
+            message:
+              "Permission denied: read:articles, write:articles is required.",
+            requiredPermissions: ["read:articles", "write:articles"],
+            permissions: ["delete:users"],
+          })
+      })
+    })
+
+    describe("When a request is made as a principal with only read:articles", () => {
       it("should respond with HTTP 403 for missing write:articles", async () => {
         const { token } = await createUserWithPermissions(["read:articles"])
 
@@ -152,12 +172,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: write:articles is required.",
-            permission: "write:articles",
+            requiredPermissions: ["write:articles"],
+            permissions: ["read:articles"],
           })
       })
     })
 
-    describe("When called with a user having only write:articles", () => {
+    describe("When a request is made as a principal with only write:articles", () => {
       it("should respond with HTTP 403 for missing read:articles", async () => {
         const { token } = await createUserWithPermissions(["write:articles"])
 
@@ -168,12 +189,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: read:articles is required.",
-            permission: "read:articles",
+            requiredPermissions: ["read:articles"],
+            permissions: ["write:articles"],
           })
       })
     })
 
-    describe("When called with a user having both read:articles and write:articles", () => {
+    describe("When a request is made as a principal with read:articles and write:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions([
           "read:articles",
@@ -188,7 +210,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with wildcard *:articles (covers both)", () => {
+    describe("When a request is made as a principal with *:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["*:articles"])
 
@@ -200,7 +222,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a superuser (*)", () => {
+    describe("When a request is made as a principal with *", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["*"])
 
@@ -212,7 +234,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with partial wildcard read:* (missing write)", () => {
+    describe("When a request is made as a principal with read:*", () => {
       it("should respond with HTTP 403 for missing write:articles", async () => {
         const { token } = await createUserWithPermissions(["read:*"])
 
@@ -223,12 +245,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: write:articles is required.",
-            permission: "write:articles",
+            requiredPermissions: ["write:articles"],
+            permissions: ["read:*"],
           })
       })
     })
 
-    describe("When called with partial wildcard write:* (missing read)", () => {
+    describe("When a request is made as a principal with write:*", () => {
       it("should respond with HTTP 403 for missing read:articles", async () => {
         const { token } = await createUserWithPermissions(["write:*"])
 
@@ -239,14 +262,15 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: read:articles is required.",
-            permission: "read:articles",
+            requiredPermissions: ["read:articles"],
+            permissions: ["write:*"],
           })
       })
     })
   })
 
-  describe("Given a route /protected/articles/delete requiring admin OR delete:articles", () => {
-    describe("When called without authentication", () => {
+  describe("Given a route /protected/articles/delete requiring admin or delete:articles", () => {
+    describe("When an unauthenticated request is made", () => {
       it("should respond with HTTP 401", async () => {
         await request(app.getHttpServer())
           .get("/protected/articles/delete")
@@ -255,7 +279,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a user having neither admin nor delete:articles", () => {
+    describe("When a request is made as a principal with neither admin nor delete:articles", () => {
       it("should respond with HTTP 403", async () => {
         const { token } = await createUserWithPermissions(["read:articles"])
 
@@ -266,12 +290,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: admin | delete:articles is required.",
-            permission: "admin | delete:articles",
+            requiredPermissions: ["admin", "delete:articles"],
+            permissions: ["read:articles"],
           })
       })
     })
 
-    describe("When called with a user having only admin", () => {
+    describe("When a request is made as a principal with admin", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["admin"])
 
@@ -283,7 +308,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a user having only delete:articles", () => {
+    describe("When a request is made as a principal with delete:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["delete:articles"])
 
@@ -295,7 +320,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a user having both admin and delete:articles", () => {
+    describe("When a request is made as a principal with admin and delete:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions([
           "admin",
@@ -310,7 +335,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with a superuser (*)", () => {
+    describe("When a request is made as a principal with *", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["*"])
 
@@ -322,7 +347,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with wildcard *:articles (matches delete:articles)", () => {
+    describe("When a request is made as a principal with *:articles", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["*:articles"])
 
@@ -334,7 +359,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with wildcard delete:* (matches delete:articles)", () => {
+    describe("When a request is made as a principal with delete:*", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions(["delete:*"])
 
@@ -346,7 +371,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with empty permissions array", () => {
+    describe("When a request is made as a principal with no permissions", () => {
       it("should respond with HTTP 403", async () => {
         const { token } = await createUserWithPermissions([])
 
@@ -357,14 +382,15 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: admin | delete:articles is required.",
-            permission: "admin | delete:articles",
+            requiredPermissions: ["admin", "delete:articles"],
+            permissions: [],
           })
       })
     })
   })
 
-  describe("Given a route /protected/reports requiring read:reports AND (admin OR write:reports) [Advanced: combined decorators]", () => {
-    describe("When called without authentication", () => {
+  describe("Given a route /protected/reports requiring read:reports and (admin or write:reports)", () => {
+    describe("When an unauthenticated request is made", () => {
       it("should respond with HTTP 401", async () => {
         await request(app.getHttpServer())
           .get("/protected/reports")
@@ -373,7 +399,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with only read:reports (missing OR requirement)", () => {
+    describe("When a request is made as a principal with only read:reports", () => {
       it("should respond with HTTP 403", async () => {
         const { token } = await createUserWithPermissions(["read:reports"])
 
@@ -384,12 +410,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: admin | write:reports is required.",
-            permission: "admin | write:reports",
+            requiredPermissions: ["admin", "write:reports"],
+            permissions: ["read:reports"],
           })
       })
     })
 
-    describe("When called with only admin (missing AND requirement)", () => {
+    describe("When a request is made as a principal with only admin", () => {
       it("should respond with HTTP 403", async () => {
         const { token } = await createUserWithPermissions(["admin"])
 
@@ -400,12 +427,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: read:reports is required.",
-            permission: "read:reports",
+            requiredPermissions: ["read:reports"],
+            permissions: ["admin"],
           })
       })
     })
 
-    describe("When called with read:reports AND admin", () => {
+    describe("When a request is made as a principal with read:reports and admin", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions([
           "read:reports",
@@ -420,7 +448,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with read:reports AND write:reports", () => {
+    describe("When a request is made as a principal with read:reports and write:reports", () => {
       it("should respond with HTTP 200", async () => {
         const { token } = await createUserWithPermissions([
           "read:reports",
@@ -436,8 +464,8 @@ describe("GET /protected/*", () => {
     })
   })
 
-  describe("Given a controller /admin/* with class-level @RequiresPermission('read:admin')", () => {
-    describe("When called without authentication", () => {
+  describe("Given a controller /admin/* requiring read:admin, with /admin/settings also requiring write:admin", () => {
+    describe("When an unauthenticated request is made", () => {
       it("should respond with HTTP 401 for /admin/dashboard", async () => {
         await request(app.getHttpServer())
           .get("/admin/dashboard")
@@ -453,7 +481,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called without read:admin permission", () => {
+    describe("When a request is made as a principal with an unrelated permission", () => {
       it("should respond with HTTP 403 for /admin/dashboard", async () => {
         const { token } = await createUserWithPermissions(["read:articles"])
 
@@ -464,26 +492,13 @@ describe("GET /protected/*", () => {
           .expect({
             statusCode: FORBIDDEN,
             message: "Permission denied: read:admin is required.",
-            permission: "read:admin",
-          })
-      })
-
-      it("should respond with HTTP 403 for /admin/settings", async () => {
-        const { token } = await createUserWithPermissions(["read:articles"])
-
-        await request(app.getHttpServer())
-          .get("/admin/settings")
-          .set("Authorization", `Bearer ${token}`)
-          .expect(FORBIDDEN)
-          .expect({
-            statusCode: FORBIDDEN,
-            message: "Permission denied: read:admin is required.",
-            permission: "read:admin",
+            requiredPermissions: ["read:admin"],
+            permissions: ["read:articles"],
           })
       })
     })
 
-    describe("When called with read:admin permission", () => {
+    describe("When a request is made as a principal with read:admin", () => {
       it("should respond with HTTP 200 for /admin/dashboard", async () => {
         const { token } = await createUserWithPermissions(["read:admin"])
 
@@ -494,8 +509,45 @@ describe("GET /protected/*", () => {
           .expect({ action: "admin:dashboard" })
       })
 
-      it("should respond with HTTP 200 for /admin/settings", async () => {
+      it("should respond with HTTP 403 for /admin/settings (also requires write:admin)", async () => {
         const { token } = await createUserWithPermissions(["read:admin"])
+
+        await request(app.getHttpServer())
+          .get("/admin/settings")
+          .set("Authorization", `Bearer ${token}`)
+          .expect(FORBIDDEN)
+          .expect({
+            statusCode: FORBIDDEN,
+            message: "Permission denied: write:admin is required.",
+            requiredPermissions: ["write:admin"],
+            permissions: ["read:admin"],
+          })
+      })
+    })
+
+    describe("When a request is made as a principal with write:admin", () => {
+      it("should respond with HTTP 403 for /admin/settings (also requires read:admin from class)", async () => {
+        const { token } = await createUserWithPermissions(["write:admin"])
+
+        await request(app.getHttpServer())
+          .get("/admin/settings")
+          .set("Authorization", `Bearer ${token}`)
+          .expect(FORBIDDEN)
+          .expect({
+            statusCode: FORBIDDEN,
+            message: "Permission denied: read:admin is required.",
+            requiredPermissions: ["read:admin"],
+            permissions: ["write:admin"],
+          })
+      })
+    })
+
+    describe("When a request is made as a principal with read:admin and write:admin", () => {
+      it("should respond with HTTP 200 for /admin/settings", async () => {
+        const { token } = await createUserWithPermissions([
+          "read:admin",
+          "write:admin",
+        ])
 
         await request(app.getHttpServer())
           .get("/admin/settings")
@@ -505,7 +557,7 @@ describe("GET /protected/*", () => {
       })
     })
 
-    describe("When called with superuser (*)", () => {
+    describe("When a request is made as a principal with *", () => {
       it("should respond with HTTP 200 for both endpoints", async () => {
         const { token } = await createUserWithPermissions(["*"])
 

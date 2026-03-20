@@ -7,7 +7,7 @@ import { Authenticatable } from "../interfaces/authenticatable.interface"
  * Service for checking and enforcing permissions on principals.
  *
  * Supports permission strings in the format `action:resource` with wildcard matching:
- * - `*` → matches any permission (superuser)
+ * - `*` → matches all permissions (wildcard)
  * - `*:resource` → matches any action on a specific resource
  * - `action:*` → matches a specific action on any resource
  *
@@ -22,8 +22,33 @@ import { Authenticatable } from "../interfaces/authenticatable.interface"
  * permissionService.requirePermission(user, 'delete:users')
  * ```
  */
+/**
+ * Matches valid permission formats:
+ * - `*` (matches all permissions)
+ * - `name` (e.g. `admin` — single-segment, exact match only)
+ * - `action:resource` (e.g. `read:users`)
+ * - `*:resource` (e.g. `*:users`)
+ * - `action:*` (e.g. `read:*`)
+ */
+const PERMISSION_FORMAT = /^(\*|[^:*]+|[^:*]+:[^:*]+|\*:[^:*]+|[^:*]+:\*)$/
+
 @Injectable()
 export class PermissionService {
+  /**
+   * Validates that a permission string matches an accepted format.
+   * Throws on invalid formats — this is a programmer/data error.
+   *
+   * @param permission - The permission string to validate
+   * @throws {Error} If the format is invalid
+   */
+  public static validateFormat(permission: string): void {
+    if (!PERMISSION_FORMAT.test(permission)) {
+      throw new Error(
+        `Invalid permission format: "${permission}". ` +
+          'Must be "*", "name", "action:resource", "*:resource", or "action:*".',
+      )
+    }
+  }
   /**
    * Checks if a principal has a specific permission.
    *
@@ -79,7 +104,12 @@ export class PermissionService {
     permission: string,
   ): void {
     if (!this.hasPermission(principal, permission)) {
-      throw new PermissionDeniedException(permission)
+      throw new PermissionDeniedException(
+        [permission],
+        "all",
+        principal.id,
+        principal.permissions,
+      )
     }
   }
 
@@ -94,10 +124,14 @@ export class PermissionService {
     principal: Authenticatable,
     permissions: string[],
   ): void {
-    for (const permission of permissions) {
-      if (!this.hasPermission(principal, permission)) {
-        throw new PermissionDeniedException(permission)
-      }
+    const missing = permissions.filter((p) => !this.hasPermission(principal, p))
+    if (missing.length > 0) {
+      throw new PermissionDeniedException(
+        missing,
+        "all",
+        principal.id,
+        principal.permissions,
+      )
     }
   }
 
@@ -113,7 +147,12 @@ export class PermissionService {
     permissions: string[],
   ): void {
     if (!this.hasAnyPermission(principal, permissions)) {
-      throw new PermissionDeniedException(permissions.join(" | "))
+      throw new PermissionDeniedException(
+        permissions,
+        "any",
+        principal.id,
+        principal.permissions,
+      )
     }
   }
 
@@ -129,12 +168,15 @@ export class PermissionService {
    * @returns true if the granted permission satisfies the requirement
    */
   private matchesPermission(granted: string, required: string): boolean {
+    PermissionService.validateFormat(granted)
+    PermissionService.validateFormat(required)
+
     // Exact match
     if (granted === required) {
       return true
     }
 
-    // Superuser wildcard
+    // Wildcard — matches all permissions
     if (granted === "*") {
       return true
     }

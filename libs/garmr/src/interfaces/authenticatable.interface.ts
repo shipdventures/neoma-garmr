@@ -31,7 +31,7 @@ export interface Authenticatable {
   /**
    * Optional array of permission strings for authorization.
    * Format: `action:resource` (e.g., `read:users`, `write:articles`).
-   * Supports wildcards: `*` (superuser), `*:resource`, `action:*`.
+   * Supports wildcards: `*` (all permissions), `*:resource`, `action:*`.
    */
   permissions?: string[]
 }

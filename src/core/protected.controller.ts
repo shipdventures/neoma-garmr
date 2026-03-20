@@ -59,6 +59,7 @@ export class AdminController {
   }
 
   @Get("settings")
+  @RequiresPermission("write:admin")
   public getSettings(): { action: string } {
     return { action: "admin:settings" }
   }
