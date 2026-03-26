@@ -5,6 +5,16 @@ import { Authenticatable } from "./interfaces/authenticatable.interface"
 export const GARMR_OPTIONS = Symbol("GARMR_OPTIONS")
 
 /**
+ * Subject and HTML body for a magic link email template.
+ */
+export interface MailerTemplate {
+  /** Email subject line */
+  subject: string
+  /** HTML template with {{token}} placeholder */
+  html: string
+}
+
+/**
  * Configuration options for the mailer.
  */
 export interface MailerOptions {
@@ -14,10 +24,10 @@ export interface MailerOptions {
   port: number
   /** From address for emails */
   from: string
-  /** Email subject line */
-  subject: string
-  /** HTML template with {{token}} placeholder */
-  html: string
+  /** Template sent to new users (registration) */
+  welcome: MailerTemplate
+  /** Template sent to existing users (login) */
+  welcomeBack: MailerTemplate
   /** SMTP authentication credentials */
   auth?: { user: string; pass: string }
 }
@@ -34,7 +44,14 @@ export interface CookieOptions {
   path?: string
   /** Secure flag — only send over HTTPS (default: true) */
   secure?: boolean
-  /** SameSite attribute (default: "lax") */
+  /**
+   * SameSite attribute (default: "lax").
+   *
+   * Setting this to "none" requires `secure: true` and exposes
+   * state-changing endpoints (e.g. logout) to cross-site request
+   * forgery (CSRF). If you need "none" for cross-origin support,
+   * implement CSRF protection on your application's POST endpoints.
+   */
   sameSite?: "strict" | "lax" | "none"
 }
 
@@ -53,8 +70,14 @@ export interface CookieOptions {
  *     host: 'smtp.example.com',
  *     port: 587,
  *     from: 'noreply@example.com',
- *     subject: 'Sign in to MyApp',
- *     html: '<a href="https://myapp.com/auth?token={{token}}">Sign in</a>',
+ *     welcome: {
+ *       subject: 'Welcome to MyApp',
+ *       html: '<a href="https://myapp.com/auth?token={{token}}">Sign up</a>',
+ *     },
+ *     welcomeBack: {
+ *       subject: 'Sign in to MyApp',
+ *       html: '<a href="https://myapp.com/auth?token={{token}}">Sign in</a>',
+ *     },
  *   },
  * })
  * ```

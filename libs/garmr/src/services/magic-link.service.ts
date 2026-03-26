@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { createTransport, Transporter } from "nodemailer"
-import { DataSource } from "typeorm"
+import { DataSource, FindOptionsWhere } from "typeorm"
 
 import { GarmrAuthenticatedEvent } from "../events/garmr-authenticated.event"
 import { GarmrRegisteredEvent } from "../events/garmr-registered.event"
@@ -54,12 +54,20 @@ export class MagicLinkService {
       { expiresIn: "15m" },
     )
 
-    const html = this.mailer.html.replaceAll("{{token}}", token)
+    const repo = this.datasource.getRepository(this.options.entity)
+    const exists = await repo.exists({
+      where: {
+        email: email.toLowerCase(),
+      } as FindOptionsWhere<Authenticatable>,
+    })
+
+    const template = exists ? this.mailer.welcomeBack : this.mailer.welcome
+    const html = template.html.replaceAll("{{token}}", token)
 
     await this.transport.sendMail({
       from: this.mailer.from,
       to: email,
-      subject: this.mailer.subject,
+      subject: template.subject,
       html,
     })
   }
@@ -104,7 +112,9 @@ export class MagicLinkService {
     const email = (payload.email as string).toLowerCase()
     const repo = this.datasource.getRepository<T>(this.options.entity)
 
-    const existing = await repo.findOne({ where: { email } as any })
+    const existing = await repo.findOne({
+      where: { email } as FindOptionsWhere<T>,
+    })
 
     if (existing) {
       this.eventEmitter.emit(
