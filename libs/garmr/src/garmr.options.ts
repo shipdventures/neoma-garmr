@@ -5,6 +5,16 @@ import { Authenticatable } from "./interfaces/authenticatable.interface"
 export const GARMR_OPTIONS = Symbol("GARMR_OPTIONS")
 
 /**
+ * Subject and HTML body for a magic link email template.
+ */
+export interface MailerTemplate {
+  /** Email subject line */
+  subject: string
+  /** HTML template with {{token}} placeholder */
+  html: string
+}
+
+/**
  * Configuration options for the mailer.
  */
 export interface MailerOptions {
@@ -14,10 +24,10 @@ export interface MailerOptions {
   port: number
   /** From address for emails */
   from: string
-  /** Email subject line */
-  subject: string
-  /** HTML template with {{token}} placeholder */
-  html: string
+  /** Template sent to new users (registration) */
+  welcome: MailerTemplate
+  /** Template sent to existing users (login) */
+  welcomeBack: MailerTemplate
   /** SMTP authentication credentials */
   auth?: { user: string; pass: string }
 }

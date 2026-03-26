@@ -19,7 +19,8 @@ process.env.MAILPIT_AUTH_USER = "ripley"
 process.env.MAILPIT_AUTH_PASS = "xenomorph"
 process.env.APP_URL = `https://${randomUUID()}.test`
 process.env.MAGIC_LINK_FROM = `${randomUUID()}@weylandyutani.com`
-process.env.MAGIC_LINK_SUBJECT = `Sign in ${randomUUID()}`
+process.env.MAGIC_LINK_WELCOME_SUBJECT = `Welcome ${randomUUID()}`
+process.env.MAGIC_LINK_WELCOME_BACK_SUBJECT = `Welcome back ${randomUUID()}`
 
 export default async (): Promise<void> => {
   const htpasswdPath = join(__dirname, "..", "email", "smtp-auth.htpasswd")

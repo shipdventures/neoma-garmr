@@ -25,8 +25,14 @@ import { AdminController, ProtectedController } from "./protected.controller"
         host: process.env.MAILPIT_HOST!,
         port: parseInt(process.env.MAILPIT_PORT!),
         from: process.env.MAGIC_LINK_FROM!,
-        subject: process.env.MAGIC_LINK_SUBJECT!,
-        html: `<a href="${process.env.APP_URL!}/magic-link/verify?token={{token}}">Sign in</a>`,
+        welcome: {
+          subject: process.env.MAGIC_LINK_WELCOME_SUBJECT!,
+          html: `<a href="${process.env.APP_URL!}/magic-link/verify?token={{token}}">Sign up</a>`,
+        },
+        welcomeBack: {
+          subject: process.env.MAGIC_LINK_WELCOME_BACK_SUBJECT!,
+          html: `<a href="${process.env.APP_URL!}/magic-link/verify?token={{token}}">Sign in</a>`,
+        },
         auth: {
           user: process.env.MAILPIT_AUTH_USER!,
           pass: process.env.MAILPIT_AUTH_PASS!,

@@ -15,8 +15,11 @@ import { Authenticatable } from "../interfaces/authenticatable.interface"
 import { MAGIC_LINK_AUDIENCE, MagicLinkService } from "./magic-link.service"
 import { TokenService } from "./token.service"
 
-const subject = "Sign in to MyApp"
-const html =
+const welcomeSubject = "Welcome to MyApp"
+const welcomeHtml =
+  '<a href="https://myapp.com/auth/verify?token={{token}}">Sign up</a>'
+const welcomeBackSubject = "Welcome back to MyApp"
+const welcomeBackHtml =
   '<a href="https://myapp.com/auth/verify?token={{token}}">Sign in</a>'
 const from = faker.internet.email()
 
@@ -35,6 +38,7 @@ describe("MagicLinkService", () => {
   describe("send", () => {
     let service: MagicLinkService
     let tokenService: TokenService
+    let repository: Repository<User>
 
     beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
@@ -45,6 +49,7 @@ describe("MagicLinkService", () => {
             entities: [User],
             synchronize: true,
           }),
+          TypeOrmModule.forFeature([User]),
           GarmrModule.forRoot({
             secret,
             expiresIn: "1h",
@@ -53,8 +58,8 @@ describe("MagicLinkService", () => {
               host: process.env.MAILPIT_HOST!,
               port: parseInt(process.env.MAILPIT_PORT!),
               from,
-              subject,
-              html,
+              welcome: { subject: welcomeSubject, html: welcomeHtml },
+              welcomeBack: { subject: welcomeBackSubject, html: welcomeBackHtml },
               auth: {
                 user: process.env.MAILPIT_AUTH_USER!,
                 pass: process.env.MAILPIT_AUTH_PASS!,
@@ -74,6 +79,7 @@ describe("MagicLinkService", () => {
 
       service = module.get<MagicLinkService>(MagicLinkService)
       tokenService = module.get<TokenService>(TokenService)
+      repository = module.get<Repository<User>>(getRepositoryToken(User))
     })
 
     afterEach(() => {
@@ -90,13 +96,42 @@ describe("MagicLinkService", () => {
 
       expect(message.To[0].Address.toLowerCase()).toBe(email.toLowerCase())
       expect(message.From.Address).toBe(from)
-      expect(message.Subject).toBe(subject)
       expect(message.HTML).toContain(
-        html.replace(
+        welcomeHtml.replace(
           "{{token}}",
           tokenService.issue({ email, aud: MAGIC_LINK_AUDIENCE }).token,
         ),
       )
+    })
+
+    describe("Given a new email", () => {
+      it("should use the welcome template", async () => {
+        const email = faker.internet.email()
+
+        await service.send(email)
+
+        const { messages } = await mailpit.messages()
+        const message = await mailpit.message(messages[0].ID as string)
+
+        expect(message.Subject).toBe(welcomeSubject)
+        expect(message.HTML).toContain("Sign up")
+      })
+    })
+
+    describe("Given an existing email", () => {
+      it("should use the welcomeBack template", async () => {
+        const email = faker.internet.email().toLowerCase()
+        const user = repository.create({ email })
+        await repository.save(user)
+
+        await service.send(email)
+
+        const { messages } = await mailpit.messages()
+        const message = await mailpit.message(messages[0].ID as string)
+
+        expect(message.Subject).toBe(welcomeBackSubject)
+        expect(message.HTML).toContain("Sign in")
+      })
     })
   })
 
@@ -124,8 +159,8 @@ describe("MagicLinkService", () => {
               host: process.env.MAILPIT_HOST!,
               port: parseInt(process.env.MAILPIT_PORT!),
               from,
-              subject,
-              html,
+              welcome: { subject: welcomeSubject, html: welcomeHtml },
+              welcomeBack: { subject: welcomeBackSubject, html: welcomeBackHtml },
               auth: {
                 user: process.env.MAILPIT_AUTH_USER!,
                 pass: process.env.MAILPIT_AUTH_PASS!,
@@ -300,8 +335,8 @@ describe("MagicLinkService", () => {
                 host: process.env.MAILPIT_HOST!,
                 port: parseInt(process.env.MAILPIT_PORT!),
                 from,
-                subject,
-                html,
+                welcome: { subject: welcomeSubject, html: welcomeHtml },
+                welcomeBack: { subject: welcomeBackSubject, html: welcomeBackHtml },
                 auth: {
                   user: process.env.MAILPIT_AUTH_USER!,
                   pass: process.env.MAILPIT_AUTH_PASS!,

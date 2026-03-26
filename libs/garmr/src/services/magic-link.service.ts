@@ -54,12 +54,18 @@ export class MagicLinkService {
       { expiresIn: "15m" },
     )
 
-    const html = this.mailer.html.replaceAll("{{token}}", token)
+    const repo = this.datasource.getRepository(this.options.entity)
+    const existing = await repo.findOne({
+      where: { email: email.toLowerCase() } as any,
+    })
+
+    const template = existing ? this.mailer.welcomeBack : this.mailer.welcome
+    const html = template.html.replaceAll("{{token}}", token)
 
     await this.transport.sendMail({
       from: this.mailer.from,
       to: email,
-      subject: this.mailer.subject,
+      subject: template.subject,
       html,
     })
   }
