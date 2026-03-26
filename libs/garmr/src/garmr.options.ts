@@ -44,7 +44,14 @@ export interface CookieOptions {
   path?: string
   /** Secure flag — only send over HTTPS (default: true) */
   secure?: boolean
-  /** SameSite attribute (default: "lax") */
+  /**
+   * SameSite attribute (default: "lax").
+   *
+   * Setting this to "none" requires `secure: true` and exposes
+   * state-changing endpoints (e.g. logout) to cross-site request
+   * forgery (CSRF). If you need "none" for cross-origin support,
+   * implement CSRF protection on your application's POST endpoints.
+   */
   sameSite?: "strict" | "lax" | "none"
 }
 

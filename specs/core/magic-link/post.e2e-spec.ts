@@ -14,19 +14,16 @@ describe("POST /magic-link", () => {
   let app: Awaited<ReturnType<typeof managedAppInstance>>
 
   beforeEach(async () => {
+    jest.useFakeTimers({ doNotFake: ["setImmediate"] })
     app = await managedAppInstance("src/core/app.module.ts#AppModule")
   })
 
+  afterEach(() => {
+    jest.useRealTimers()
+    return mailpit.clear()
+  })
+
   describe("When a request is made with a new email", () => {
-    beforeEach(() => {
-      jest.useFakeTimers({ doNotFake: ["setImmediate"] })
-    })
-
-    afterEach(() => {
-      jest.useRealTimers()
-      return mailpit.clear()
-    })
-
     it(`should respond with HTTP ${ACCEPTED} and send a welcome email`, async () => {
       const email = faker.internet.email()
 
@@ -81,8 +78,6 @@ describe("POST /magic-link", () => {
   })
 
   describe("When a request is made with an existing email", () => {
-    afterEach(() => mailpit.clear())
-
     it(`should respond with HTTP ${ACCEPTED} and send a welcome back email`, async () => {
       const email = faker.internet.email().toLowerCase()
 

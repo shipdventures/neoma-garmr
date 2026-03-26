@@ -55,11 +55,11 @@ export class MagicLinkService {
     )
 
     const repo = this.datasource.getRepository(this.options.entity)
-    const existing = await repo.findOne({
-      where: { email: email.toLowerCase() } as any,
+    const exists = await repo.exists({
+      where: { email: email.toLowerCase() },
     })
 
-    const template = existing ? this.mailer.welcomeBack : this.mailer.welcome
+    const template = exists ? this.mailer.welcomeBack : this.mailer.welcome
     const html = template.html.replaceAll("{{token}}", token)
 
     await this.transport.sendMail({
@@ -110,7 +110,7 @@ export class MagicLinkService {
     const email = (payload.email as string).toLowerCase()
     const repo = this.datasource.getRepository<T>(this.options.entity)
 
-    const existing = await repo.findOne({ where: { email } as any })
+    const existing = await repo.findOne({ where: { email: email } as any })
 
     if (existing) {
       this.eventEmitter.emit(
