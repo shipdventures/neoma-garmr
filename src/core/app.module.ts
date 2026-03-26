@@ -4,6 +4,7 @@ import { TypeOrmModule } from "@nestjs/typeorm"
 
 import { User } from "../user.entity"
 
+import { LogoutController } from "./logout.controller"
 import { MagicLinkController } from "./magic-link.controller"
 import { MeController } from "./me.controller"
 import { AdminController, ProtectedController } from "./protected.controller"
@@ -34,6 +35,7 @@ import { AdminController, ProtectedController } from "./protected.controller"
     }),
   ],
   controllers: [
+    LogoutController,
     MagicLinkController,
     MeController,
     ProtectedController,
