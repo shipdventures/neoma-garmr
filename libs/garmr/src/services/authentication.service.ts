@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
-import { DataSource } from "typeorm"
+import { DataSource, FindOptionsWhere } from "typeorm"
 
 import { GarmrAuthenticatedEvent } from "../events/garmr-authenticated.event"
 import { IncorrectCredentialsException } from "../exceptions/incorrect-credentials.exception"
@@ -69,7 +69,7 @@ export class AuthenticationService {
 
     const repo = this.datasource.getRepository<T>(this.options.entity)
     const entity = await repo.findOne({
-      where: { id: sub } as any,
+      where: { id: sub } as FindOptionsWhere<T>,
     })
 
     if (!entity) {
