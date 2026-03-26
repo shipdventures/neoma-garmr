@@ -78,8 +78,14 @@ import { User } from "./user.entity"
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT),
         from: "auth@yourapp.com",
-        subject: "Sign in to YourApp",
-        html: '<a href="https://yourapp.com/auth/verify?token={{token}}">Click to sign in</a>',
+        welcome: {
+          subject: "Welcome to YourApp",
+          html: '<a href="https://yourapp.com/auth/verify?token={{token}}">Sign up</a>',
+        },
+        welcomeBack: {
+          subject: "Sign in to YourApp",
+          html: '<a href="https://yourapp.com/auth/verify?token={{token}}">Sign in</a>',
+        },
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
@@ -290,10 +296,17 @@ Configures the authentication module. The module is global — import it once in
 | `host` | `string` | SMTP host |
 | `port` | `number` | SMTP port |
 | `from` | `string` | Sender email address |
-| `subject` | `string` | Email subject line |
-| `html` | `string` | Email HTML body (use `{{token}}` placeholder) |
+| `welcome` | `MailerTemplate` | Template sent to new users (registration) |
+| `welcomeBack` | `MailerTemplate` | Template sent to existing users (login) |
 | `auth.user` | `string` | SMTP username |
 | `auth.pass` | `string` | SMTP password |
+
+#### MailerTemplate
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `subject` | `string` | Email subject line |
+| `html` | `string` | Email HTML body (use `{{token}}` placeholder) |
 
 #### CookieOptions
 
@@ -309,7 +322,7 @@ Configures the authentication module. The module is global — import it once in
 
 #### MagicLinkService
 
-- `send(email: string): Promise<void>` - Sends a magic link email
+- `send(email: string): Promise<void>` - Sends a magic link email (uses `welcome` template for new users, `welcomeBack` for existing)
 - `verify<T>(token: string): Promise<{ entity: T; isNewUser: boolean }>` - Validates token and returns/creates user
 
 #### SessionService

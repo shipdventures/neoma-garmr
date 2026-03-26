@@ -59,7 +59,10 @@ describe("MagicLinkService", () => {
               port: parseInt(process.env.MAILPIT_PORT!),
               from,
               welcome: { subject: welcomeSubject, html: welcomeHtml },
-              welcomeBack: { subject: welcomeBackSubject, html: welcomeBackHtml },
+              welcomeBack: {
+                subject: welcomeBackSubject,
+                html: welcomeBackHtml,
+              },
               auth: {
                 user: process.env.MAILPIT_AUTH_USER!,
                 pass: process.env.MAILPIT_AUTH_PASS!,
@@ -160,7 +163,10 @@ describe("MagicLinkService", () => {
               port: parseInt(process.env.MAILPIT_PORT!),
               from,
               welcome: { subject: welcomeSubject, html: welcomeHtml },
-              welcomeBack: { subject: welcomeBackSubject, html: welcomeBackHtml },
+              welcomeBack: {
+                subject: welcomeBackSubject,
+                html: welcomeBackHtml,
+              },
               auth: {
                 user: process.env.MAILPIT_AUTH_USER!,
                 pass: process.env.MAILPIT_AUTH_PASS!,
@@ -336,7 +342,10 @@ describe("MagicLinkService", () => {
                 port: parseInt(process.env.MAILPIT_PORT!),
                 from,
                 welcome: { subject: welcomeSubject, html: welcomeHtml },
-                welcomeBack: { subject: welcomeBackSubject, html: welcomeBackHtml },
+                welcomeBack: {
+                  subject: welcomeBackSubject,
+                  html: welcomeBackHtml,
+                },
                 auth: {
                   user: process.env.MAILPIT_AUTH_USER!,
                   pass: process.env.MAILPIT_AUTH_PASS!,

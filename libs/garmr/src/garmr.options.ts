@@ -63,8 +63,14 @@ export interface CookieOptions {
  *     host: 'smtp.example.com',
  *     port: 587,
  *     from: 'noreply@example.com',
- *     subject: 'Sign in to MyApp',
- *     html: '<a href="https://myapp.com/auth?token={{token}}">Sign in</a>',
+ *     welcome: {
+ *       subject: 'Welcome to MyApp',
+ *       html: '<a href="https://myapp.com/auth?token={{token}}">Sign up</a>',
+ *     },
+ *     welcomeBack: {
+ *       subject: 'Sign in to MyApp',
+ *       html: '<a href="https://myapp.com/auth?token={{token}}">Sign in</a>',
+ *     },
  *   },
  * })
  * ```

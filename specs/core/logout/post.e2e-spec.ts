@@ -48,14 +48,11 @@ describe("POST /logout", () => {
       expect(setCookie.toLowerCase()).toContain("samesite=lax")
       expect(setCookie).toContain("Path=/")
     })
-
   })
 
   describe("When a request is made without a session cookie", () => {
     it(`should respond with HTTP ${NO_CONTENT}`, async () => {
-      await request(app.getHttpServer())
-        .post("/logout")
-        .expect(NO_CONTENT)
+      await request(app.getHttpServer()).post("/logout").expect(NO_CONTENT)
     })
   })
 })
