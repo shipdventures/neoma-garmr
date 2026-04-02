@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-02
+
+### Changed
+- **Breaking**: Removed `BearerAuthenticationMiddleware` and `CookieAuthenticationMiddleware` from barrel exports (internal, applied automatically by `GarmrModule`)
+- Moved NestJS framework packages to `peerDependencies` in published package
+- Added `cookie`, `jsonwebtoken`, `nodemailer` as direct library dependencies
+- Added `@nestjs/typeorm`, `@nestjs/event-emitter`, `@nestjs/platform-express`, `class-validator`, `reflect-metadata`, `rxjs`, `typeorm` as peer dependencies
+- Reorganized barrel exports with section comments for clarity
+- Updated README peer dependency install command
+
+### Removed
+- `bcrypt` dependency and bcrypt test matcher (unused since passwordless migration)
+- `@nestjs/mapped-types` dependency (unused)
+
+## [0.5.0] - 2026-03-27
+
+### Added
+- Separate magic link email templates for login (`welcomeBack`) vs registration (`welcome`)
+- `POST /logout` endpoint exercising `SessionService.clear()`
+- CSRF documentation for `SameSite=None` on `CookieOptions`
+
+### Changed
+- **Breaking**: `MailerOptions` now uses `welcome`/`welcomeBack` template objects instead of single `html`/`subject` fields
+- `MagicLinkService.send()` checks user existence to select the appropriate template
+- Replace `as any` with `FindOptionsWhere<T>` on all repository queries
+
+## [0.4.1] - 2026-03-20
+
+### Fixed
+- Publish configuration for npm
+
+## [0.4.0] - 2026-03-20
+
+### Added
+- Passwordless magic link authentication (`MagicLinkService.send()`, `MagicLinkService.verify()`)
+- Cookie-based sessions (httpOnly, Secure, SameSite=Lax) via `SessionService`
+- Dual transport: `BearerAuthenticationMiddleware` and `CookieAuthenticationMiddleware`
+- JWT audience (`aud`) claim validation to prevent token type confusion
+- `MAGIC_LINK_AUDIENCE` and `SESSION_AUDIENCE` constants
+- `InvalidMagicLinkTokenException` for invalid/wrong audience tokens
+- Permission-based authorization with wildcard matching (`*`, `*:resource`, `action:*`)
+- `@RequiresPermission` (AND) and `@RequiresAnyPermission` (OR) decorators
+- `RequiresPermissionGuard` combining authentication and permission checks
+- `PermissionDeniedException` (403) with detailed error metadata
+- Optional `permissions` field on `Authenticatable` interface
+- Permission format validation at decoration time and runtime
+
+### Removed
+- Password-based authentication (`PasswordService`, `RegistrationService`, `CredentialsController`, `SessionsController`)
+- `bcrypt` password hashing
+- Password-related DTOs and validation
+
+### Changed
+- Authentication flow now uses magic links instead of email/password
+- Split single authentication middleware into bearer and cookie middlewares
+- Bearer takes priority when both auth methods are present
+
 ## [0.3.3] - 2025-11-13
 
 ### Fixed
@@ -67,7 +124,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Setup script for placeholder replacement
 - Comprehensive README documentation
 
-[Unreleased]: https://github.com/shipdventures/neoma-garmr/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/shipdventures/neoma-garmr/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/shipdventures/neoma-garmr/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/shipdventures/neoma-garmr/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/shipdventures/neoma-garmr/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/shipdventures/neoma-garmr/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/shipdventures/neoma-garmr/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shipdventures/neoma-garmr/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shipdventures/neoma-garmr/compare/v0.3.0...v0.3.1
