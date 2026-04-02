@@ -1,6 +1,4 @@
-import { EmailDto } from "@lib"
-import { MagicLinkService } from "@lib/services/magic-link.service"
-import { SessionService } from "@lib/services/session.service"
+import { EmailDto, MagicLinkService, SessionService } from "@lib"
 import {
   Body,
   Controller,

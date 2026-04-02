@@ -1,5 +1,4 @@
-import { Principal } from "@lib"
-import { Authenticated } from "@lib/guards/authenticated.guard"
+import { Authenticated, Principal } from "@lib"
 import { Controller, Get, UseGuards } from "@nestjs/common"
 
 import { User } from "../user.entity"

@@ -1,8 +1,5 @@
 import { faker } from "@faker-js/faker"
-import {
-  MAGIC_LINK_AUDIENCE,
-  SESSION_AUDIENCE,
-} from "@lib/services/magic-link.service"
+import { MAGIC_LINK_AUDIENCE, SESSION_AUDIENCE } from "@lib"
 import { managedAppInstance } from "@neoma/managed-app"
 import { HttpStatus } from "@nestjs/common"
 import { mailpit } from "fixtures/email/mailpit"

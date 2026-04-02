@@ -26,7 +26,7 @@ npm install @neoma/garmr
 ### Peer Dependencies
 
 ```bash
-npm install @nestjs/common @nestjs/core @nestjs/platform-express @nestjs/event-emitter rxjs reflect-metadata class-validator typeorm
+npm install @nestjs/common @nestjs/core @nestjs/platform-express @nestjs/event-emitter @nestjs/typeorm rxjs reflect-metadata class-validator typeorm
 ```
 
 ## Getting Started

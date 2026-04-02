@@ -44,6 +44,7 @@
     "@nestjs/core": "11.x",
     "@nestjs/event-emitter": "3.x",
     "@nestjs/platform-express": "11.x",
+    "@nestjs/typeorm": "11.x",
     "class-validator": ">=0.14",
     "reflect-metadata": ">=0.2",
     "rxjs": ">=7",
