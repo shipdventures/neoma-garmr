@@ -1,6 +1,10 @@
 # compiled output
 dist
 *.tgz
+
+# publish artifacts copied by prepublishOnly
+libs/garmr/README.md
+libs/garmr/LICENSE
 /node_modules
 /build
 

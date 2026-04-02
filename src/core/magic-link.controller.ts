@@ -1,4 +1,6 @@
-import { MagicLinkService, SessionService, EmailDto } from "@neoma/garmr"
+import { EmailDto } from "@lib"
+import { MagicLinkService } from "@lib/services/magic-link.service"
+import { SessionService } from "@lib/services/session.service"
 import {
   Body,
   Controller,

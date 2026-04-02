@@ -34,8 +34,19 @@
     "!**/*.tsbuildinfo"
   ],
   "license": "MIT",
+  "dependencies": {
+    "cookie": "^1.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^7.0.12"
+  },
   "peerDependencies": {
     "@nestjs/common": "11.x",
-    "@nestjs/core": "11.x"
+    "@nestjs/core": "11.x",
+    "@nestjs/event-emitter": "3.x",
+    "@nestjs/platform-express": "11.x",
+    "class-validator": ">=0.14",
+    "reflect-metadata": ">=0.2",
+    "rxjs": ">=7",
+    "typeorm": ">=0.3"
   }
 }
