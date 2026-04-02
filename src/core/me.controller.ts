@@ -1,4 +1,4 @@
-import { Authenticated, Principal } from "@neoma/garmr"
+import { Authenticated, Principal } from "@lib"
 import { Controller, Get, UseGuards } from "@nestjs/common"
 
 import { User } from "../user.entity"

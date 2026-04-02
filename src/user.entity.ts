@@ -1,4 +1,4 @@
-import { Authenticatable } from "@neoma/garmr"
+import { Authenticatable } from "@lib"
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm"
 
 @Entity()

@@ -1,4 +1,4 @@
-import { GarmrModule } from "@neoma/garmr"
+import { GarmrModule } from "@lib"
 import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
 
