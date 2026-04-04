@@ -1,4 +1,4 @@
-/// <reference path="./types/express.ts" />
+import "./types/express"
 
 // Module & Configuration
 export * from "./garmr.module"
