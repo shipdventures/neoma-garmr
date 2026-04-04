@@ -85,17 +85,12 @@ describe("Authenticated", () => {
         })
 
         it("Then the exception should have a redirect with the URL and 303 status.", () => {
-          try {
-            guard.canActivate(<ExecutionContext>ctx)
-          } catch (err) {
-            expect(err).toBeInstanceOf(UnauthorizedRedirectException)
-            expect(
-              (err as UnauthorizedRedirectException).getRedirect(),
-            ).toEqual({
-              url: redirectUrl,
-              status: HttpStatus.SEE_OTHER,
-            })
-          }
+          expect(() =>
+            guard.canActivate(<ExecutionContext>ctx),
+          ).toThrowMatching(UnauthorizedRedirectException, {
+            url: redirectUrl,
+            redirectStatus: HttpStatus.SEE_OTHER,
+          })
         })
       })
 
