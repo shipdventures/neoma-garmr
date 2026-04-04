@@ -1,3 +1,5 @@
+import "./types/express-principal"
+
 // Module & Configuration
 export * from "./garmr.module"
 export * from "./garmr.options"

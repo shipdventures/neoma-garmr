@@ -12,6 +12,8 @@ export default tseslint.config(
       "eslint.config.mjs",
       // Any build output
       "**/dist",
+      // Ambient type declarations
+      "**/*.d.ts",
     ],
   },
   eslint.configs.recommended,
