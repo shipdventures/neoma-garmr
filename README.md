@@ -386,6 +386,14 @@ A guard that ensures `req.principal` exists. Throws `UnauthorizedException` if n
 export class ProtectedController {}
 ```
 
+For hypermedia apps, pass a redirect URL to redirect unauthenticated users instead of returning 401 JSON. Throws `UnauthorizedRedirectException` with a 303 See Other status for an exception filter to handle.
+
+```typescript
+@UseGuards(new Authenticated("/auth/magic-link"))
+@Controller("dashboard")
+export class DashboardController {}
+```
+
 ### Decorators
 
 #### Principal
@@ -455,6 +463,7 @@ public getReports() {}
 | `TokenFailedVerificationException` | 401 | JWT verification failed (expired, invalid signature) |
 | `IncorrectCredentialsException` | 401 | User not found for valid token |
 | `InvalidCredentialsException` | 401 | Token invalid, wrong audience, or malformed header |
+| `UnauthorizedRedirectException` | 401 | Unauthenticated request on a route with a redirect URL configured |
 | `PermissionDeniedException` | 403 | User lacks required permission(s) |
 
 ### Events

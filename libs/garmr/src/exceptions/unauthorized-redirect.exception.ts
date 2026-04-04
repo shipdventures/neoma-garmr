@@ -5,8 +5,8 @@ import { UnauthorizedException } from "@nestjs/common"
  * rather than receiving a 401 JSON response.
  *
  * Extends {@link UnauthorizedException} so existing 401 catch filters still apply.
- * The `getRedirect()` method provides the redirect URL and status code for
- * the exception filter to issue an HTTP redirect.
+ * The `getRedirect()` method provides the redirect URL and status code
+ * for an exception filter to choose to handle as an HTTP redirect.
  *
  * @example
  * ```typescript
@@ -26,7 +26,7 @@ export class UnauthorizedRedirectException extends UnauthorizedException {
   }
 
   /**
-   * Returns the redirect target for the exception filter.
+   * Returns the redirect target for an exception filter to handle.
    *
    * @returns Object containing the redirect URL and HTTP status code
    */
