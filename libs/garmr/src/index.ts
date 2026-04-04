@@ -1,4 +1,4 @@
-import "./types/express"
+import "./types/express-principal"
 
 // Module & Configuration
 export * from "./garmr.module"
