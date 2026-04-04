@@ -1,7 +1,12 @@
-import { Authenticatable } from "../interfaces/authenticatable.interface"
+import { type Authenticatable } from "../interfaces/authenticatable.interface"
 
-declare module "express" {
-  interface Request {
-    principal?: Authenticatable
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- Express global augmentation requires namespace
+  namespace Express {
+    interface Request {
+      principal?: Authenticatable
+    }
   }
 }
+
+export {}
