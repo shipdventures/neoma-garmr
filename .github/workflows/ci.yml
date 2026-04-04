@@ -39,7 +39,7 @@ jobs:
         run: npm test -- --watchAll=false --passWithNoTests
 
       - name: Run E2E tests
-        run: npm run test:e2e -- --watchAll=false --passWithNoTests
+        run: npm run test:e2e -- --watchAll=false
 
       - name: Test publish structure
         run: |

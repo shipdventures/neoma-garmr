@@ -1,4 +1,4 @@
-import { SessionService } from "@neoma/garmr"
+import { SessionService } from "@lib"
 import { Controller, HttpCode, HttpStatus, Post, Res } from "@nestjs/common"
 import { Response } from "express"
 

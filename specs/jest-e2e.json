@@ -12,9 +12,7 @@
   "moduleNameMapper": {
     "fixtures/(.*)$": "<rootDir>/../fixtures/$1",
     "@lib/(.*)$": "<rootDir>/../libs/garmr/src/$1",
-    "@lib": "<rootDir>/../libs/garmr/src",
-    "@neoma/garmr/(.*)$": "<rootDir>/../libs/garmr/dist/$1",
-    "@neoma/garmr": "<rootDir>/../libs/garmr/dist"
+    "@lib": "<rootDir>/../libs/garmr/src"
   },
   "transformIgnorePatterns": ["node_modules/(?!@faker-js/faker)"]
 }
