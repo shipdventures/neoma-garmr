@@ -1,4 +1,4 @@
-import { Authenticatable } from "@lib/interfaces/authenticatable.interface"
+import { Authenticatable } from "../interfaces/authenticatable.interface"
 import { LoggerService } from "@nestjs/common"
 
 declare global {
