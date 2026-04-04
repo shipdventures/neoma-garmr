@@ -24,7 +24,7 @@ import { UnauthorizedRedirectException } from "../exceptions/unauthorized-redire
  * public me() {}
  * ```
  *
- * @example Hypermedia usage (redirects to login page)
+ * @example Server-rendered usage (redirects to login page)
  * ```typescript
  * @UseGuards(new Authenticated("/auth/magic-link"))
  * @Get("dashboard")
@@ -35,8 +35,10 @@ import { UnauthorizedRedirectException } from "../exceptions/unauthorized-redire
 export class Authenticated implements CanActivate {
   /**
    * @param redirectUrl - Optional URL to redirect unauthenticated users to.
-   *   When provided, throws {@link UnauthorizedRedirectException} with a 303 See Other
-   *   status instead of a plain {@link UnauthorizedException}.
+   *   When provided, throws {@link UnauthorizedRedirectException} instead of a plain
+   *   {@link UnauthorizedException}. The exception is still a 401 but carries redirect
+   *   metadata via `getRedirect()` that an exception filter may use to issue an HTTP
+   *   redirect for browser-based requests.
    */
   public constructor(@Optional() private readonly redirectUrl?: string) {}
 
