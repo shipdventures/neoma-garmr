@@ -21,8 +21,6 @@
       "fixtures/*": ["fixtures/*"],
       "@lib": ["libs/garmr/src"],
       "@lib/*": ["libs/garmr/src/*"],
-      "@neoma/garmr": ["libs/garmr/dist"],
-      "@neoma/garmr/*": ["libs/garmr/dist/*"]
     }
   }
 }

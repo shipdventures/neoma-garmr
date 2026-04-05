@@ -33,6 +33,7 @@ export * from "./exceptions/invalid-magic-link-token.exception"
 export * from "./exceptions/token-failed-verification.exception"
 export * from "./exceptions/token-malformed.exception"
 export * from "./exceptions/permission-denied.exception"
+export * from "./exceptions/unauthorized-redirect.exception"
 
 // Events consumers listen for via @OnEvent
 export * from "./events/garmr-registered.event"
