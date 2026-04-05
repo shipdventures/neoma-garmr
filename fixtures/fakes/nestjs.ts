@@ -1,7 +1,6 @@
 import { ExecutionContext } from "@nestjs/common"
-import { Request, Response } from "express"
 
-import { express } from "./express"
+import { express, MockRequest, MockResponse } from "./express"
 
 /**
  * Creates a partial ExecutionContext with a switchToHttp
@@ -22,11 +21,11 @@ import { express } from "./express"
  * and optionally getHandler/getClass.
  */
 export const executionContext = <T>(
-  req: Partial<Request> = express.request(),
-  res: Partial<Response> = req.res!,
+  req: MockRequest = express.request(),
+  res: MockResponse = req.res,
   route?: { controller: new () => T; method: keyof T & string },
 ): Partial<ExecutionContext> => {
-  req.res = <Response>res
+  req.res = res
   return {
     switchToHttp: jest.fn().mockReturnValue({
       getResponse: jest.fn().mockReturnValue(res),

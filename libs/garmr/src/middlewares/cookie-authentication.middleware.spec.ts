@@ -47,13 +47,17 @@ describe("CookieAuthenticationMiddleware", () => {
           cookie: "garmr.sid=" + encodeURIComponent(sid),
         },
         principal: existingPrincipal,
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).not.toHaveBeenCalled()
-        expect(req.principal).toBe(existingPrincipal)
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).not.toHaveBeenCalled()
+          expect(req.principal).toBe(existingPrincipal)
+          done()
+        },
+      )
     })
   })
 
@@ -68,25 +72,33 @@ describe("CookieAuthenticationMiddleware", () => {
         headers: {
           cookie: "garmr.sid=" + encodeURIComponent(sid),
         },
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).toHaveBeenCalledWith(sid)
-        expect(req.principal).toBe(principal)
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).toHaveBeenCalledWith(sid)
+          expect(req.principal).toBe(principal)
+          done()
+        },
+      )
     })
   })
 
   describe("When called without a cookie header", () => {
     it("should call next without calling service", (done) => {
-      const req = express.request() as Request
+      const req = express.request()
 
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).not.toHaveBeenCalled()
-        expect(req.principal).toBeUndefined()
-        done()
-      })
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).not.toHaveBeenCalled()
+          expect(req.principal).toBeUndefined()
+          done()
+        },
+      )
     })
   })
 
@@ -96,13 +108,17 @@ describe("CookieAuthenticationMiddleware", () => {
         headers: {
           cookie: "other=value; another=thing",
         },
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).not.toHaveBeenCalled()
-        expect(req.principal).toBeUndefined()
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).not.toHaveBeenCalled()
+          expect(req.principal).toBeUndefined()
+          done()
+        },
+      )
     })
   })
 
@@ -119,12 +135,16 @@ describe("CookieAuthenticationMiddleware", () => {
         headers: {
           cookie: "garmr.sid=" + encodeURIComponent(sid),
         },
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(req.principal).toBeUndefined()
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(req.principal).toBeUndefined()
+          done()
+        },
+      )
     })
 
     it("should log a warning if req.logger is present", (done) => {
@@ -134,17 +154,21 @@ describe("CookieAuthenticationMiddleware", () => {
           cookie: "garmr.sid=" + encodeURIComponent(sid),
         },
         logger: logger as unknown as LoggerService,
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(logger.warn).toHaveBeenCalledWith(
-          "Authentication via cookie failed",
-          {
-            err: error,
-          },
-        )
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(logger.warn).toHaveBeenCalledWith(
+            "Authentication via cookie failed",
+            {
+              err: error,
+            },
+          )
+          done()
+        },
+      )
     })
   })
 
@@ -163,13 +187,17 @@ describe("CookieAuthenticationMiddleware", () => {
         headers: {
           cookie: "my-app.sid=" + encodeURIComponent(sid),
         },
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).toHaveBeenCalledWith(sid)
-        expect(req.principal).toBe(principal)
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).toHaveBeenCalledWith(sid)
+          expect(req.principal).toBe(principal)
+          done()
+        },
+      )
     })
 
     it("should not match the default garmr.sid cookie", (done) => {
@@ -179,13 +207,17 @@ describe("CookieAuthenticationMiddleware", () => {
         headers: {
           cookie: "garmr.sid=" + encodeURIComponent(sid),
         },
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).not.toHaveBeenCalled()
-        expect(req.principal).toBeUndefined()
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).not.toHaveBeenCalled()
+          expect(req.principal).toBeUndefined()
+          done()
+        },
+      )
     })
   })
 })

@@ -4,7 +4,7 @@ import { HttpStatus } from "@nestjs/common"
 import { mailpit } from "fixtures/email/mailpit"
 import { credentials } from "fixtures/fakes/credentials"
 import * as jwt from "jsonwebtoken"
-import * as request from "supertest"
+import request from "supertest"
 import { DataSource } from "typeorm"
 
 const { ACCEPTED, BAD_REQUEST } = HttpStatus

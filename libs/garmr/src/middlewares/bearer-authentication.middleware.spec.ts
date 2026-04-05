@@ -59,13 +59,17 @@ describe("BearerAuthenticationMiddleware", () => {
           authorization: `Bearer ${jwt.sign({ sub: v4() }, v4())}`,
         },
         principal: existingPrincipal,
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).not.toHaveBeenCalled()
-        expect(req.principal).toBe(existingPrincipal)
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).not.toHaveBeenCalled()
+          expect(req.principal).toBe(existingPrincipal)
+          done()
+        },
+      )
     })
   })
 
@@ -82,26 +86,34 @@ describe("BearerAuthenticationMiddleware", () => {
           headers: {
             authorization: header,
           },
-        }) as Request
-
-        void middleware.use(req, express.response() as Response, () => {
-          expect(service.authenticate).toHaveBeenCalledWith(token)
-          expect(req.principal).toBe(principal)
-          done()
         })
+
+        void middleware.use(
+          req as unknown as Request,
+          express.response() as unknown as Response,
+          () => {
+            expect(service.authenticate).toHaveBeenCalledWith(token)
+            expect(req.principal).toBe(principal)
+            done()
+          },
+        )
       })
     })
   })
 
   describe("When called without an Authorization header", () => {
     it("should call next without calling service", (done) => {
-      const req = express.request() as Request
+      const req = express.request()
 
-      void middleware.use(req, express.response() as Response, () => {
-        expect(service.authenticate).not.toHaveBeenCalled()
-        expect(req.principal).toBeUndefined()
-        done()
-      })
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(service.authenticate).not.toHaveBeenCalled()
+          expect(req.principal).toBeUndefined()
+          done()
+        },
+      )
     })
   })
 
@@ -119,12 +131,16 @@ describe("BearerAuthenticationMiddleware", () => {
         headers: {
           authorization: bearer,
         },
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(req.principal).toBeUndefined()
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(req.principal).toBeUndefined()
+          done()
+        },
+      )
     })
 
     it("should log a warning if req.logger is present", (done) => {
@@ -134,17 +150,21 @@ describe("BearerAuthenticationMiddleware", () => {
           authorization: bearer,
         },
         logger: logger as unknown as LoggerService,
-      }) as Request
-
-      void middleware.use(req, express.response() as Response, () => {
-        expect(logger.warn).toHaveBeenCalledWith(
-          "Authentication via authorization header failed",
-          {
-            err: error,
-          },
-        )
-        done()
       })
+
+      void middleware.use(
+        req as unknown as Request,
+        express.response() as unknown as Response,
+        () => {
+          expect(logger.warn).toHaveBeenCalledWith(
+            "Authentication via authorization header failed",
+            {
+              err: error,
+            },
+          )
+          done()
+        },
+      )
     })
   })
 
@@ -155,10 +175,14 @@ describe("BearerAuthenticationMiddleware", () => {
           headers: {
             authorization: header,
           },
-        }) as Request
+        })
 
         await expect(
-          middleware.use(req, express.response() as Response, () => {}),
+          middleware.use(
+            req as unknown as Request,
+            express.response() as unknown as Response,
+            () => {},
+          ),
         ).rejects.toMatchError(InvalidCredentialsException, { message: err })
       })
     })
@@ -171,10 +195,14 @@ describe("BearerAuthenticationMiddleware", () => {
           headers: {
             authorization: `${basic} ${jwt.sign({ sub: v4() }, v4())}`,
           },
-        }) as Request
+        })
 
         await expect(
-          middleware.use(req, express.response() as Response, () => {}),
+          middleware.use(
+            req as unknown as Request,
+            express.response() as unknown as Response,
+            () => {},
+          ),
         ).rejects.toMatchError(InvalidCredentialsException, {
           message: `Invalid authentication scheme. Expected Bearer but got "${basic}"`,
         })

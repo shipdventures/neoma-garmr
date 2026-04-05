@@ -2,8 +2,7 @@ import { faker } from "@faker-js/faker"
 import { ExecutionContext, UnauthorizedException } from "@nestjs/common"
 import { Reflector } from "@nestjs/core"
 import { Test, TestingModule } from "@nestjs/testing"
-import { Request } from "express"
-import { express } from "fixtures/fakes/express"
+import { express, MockRequest } from "fixtures/fakes/express"
 import { executionContext } from "fixtures/fakes/nestjs"
 
 import { RequiresAnyPermission } from "../decorators/requires-any-permission.decorator"
@@ -47,7 +46,7 @@ class ClassLevelPermissions {
 
 describe("RequiresPermissionGuard", () => {
   let guard: RequiresPermissionGuard
-  let request: Partial<Request>
+  let request: MockRequest
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
