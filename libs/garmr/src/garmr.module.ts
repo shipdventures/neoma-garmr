@@ -1,77 +1,43 @@
-import {
-  DynamicModule,
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-} from "@nestjs/common"
-import { EventEmitterModule } from "@nestjs/event-emitter"
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common"
 
-import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
-import { Authenticatable } from "./interfaces/authenticatable.interface"
+import { ConfigurableModuleClass } from "./garmr.module-definition"
 import { BearerAuthenticationMiddleware } from "./middlewares/bearer-authentication.middleware"
 import { CookieAuthenticationMiddleware } from "./middlewares/cookie-authentication.middleware"
-import { AuthenticationService } from "./services/authentication.service"
-import { MagicLinkService } from "./services/magic-link.service"
-import { PermissionService } from "./services/permission.service"
-import { SessionService } from "./services/session.service"
-import { TokenService } from "./services/token.service"
 
 /**
  * Passwordless authentication module for NestJS applications.
  *
  * @requires TypeOrmModule must be configured in your application.
  *
- * @example
+ * @example Static configuration
  * ```typescript
- * import { GarmrModule } from '@neoma/garmr'
- *
- * @Module({
- *   imports: [
- *     TypeOrmModule.forRoot({ ... }),
- *     GarmrModule.forRoot({
- *       secret: process.env.JWT_SECRET,
- *       expiresIn: '1h',
- *       entity: User,
- *       mailer: { ... },
- *     }),
- *   ],
+ * GarmrModule.forRoot({
+ *   secret: process.env.JWT_SECRET,
+ *   expiresIn: '1h',
+ *   entity: User,
+ *   mailer: { ... },
  * })
- * export class AppModule {}
+ * ```
+ *
+ * @example Async configuration via DI
+ * ```typescript
+ * GarmrModule.forRootAsync({
+ *   imports: [ConfigModule],
+ *   useFactory: (config: ConfigService) => ({
+ *     secret: config.get('JWT_SECRET'),
+ *     expiresIn: '1h',
+ *     entity: User,
+ *     mailer: { ... },
+ *   }),
+ *   inject: [ConfigService],
+ * })
  * ```
  */
 @Module({})
-export class GarmrModule implements NestModule {
+export class GarmrModule extends ConfigurableModuleClass implements NestModule {
   public configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(BearerAuthenticationMiddleware, CookieAuthenticationMiddleware)
       .forRoutes("*")
-  }
-
-  public static forRoot<T extends Authenticatable>(
-    options: GarmrOptions<T>,
-  ): DynamicModule {
-    return {
-      module: GarmrModule,
-      global: true,
-      imports: [EventEmitterModule.forRoot()],
-      providers: [
-        {
-          provide: GARMR_OPTIONS,
-          useValue: options,
-        },
-        AuthenticationService,
-        MagicLinkService,
-        PermissionService,
-        SessionService,
-        TokenService,
-      ],
-      exports: [
-        AuthenticationService,
-        MagicLinkService,
-        PermissionService,
-        SessionService,
-        TokenService,
-      ],
-    }
   }
 }

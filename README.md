@@ -54,7 +54,9 @@ export class User implements Authenticatable {
 
 ### 2. Configure GarmrModule
 
-Import and configure `GarmrModule` in your application module:
+Import and configure `GarmrModule` in your application module. You can use `forRoot` with a static options object, or `forRootAsync` to resolve configuration via the NestJS DI container.
+
+#### Static configuration
 
 ```typescript
 import { GarmrModule } from "@neoma/garmr"
@@ -98,6 +100,52 @@ import { User } from "./user.entity"
         path: "/",          // default
         // domain: ".yourapp.com",  // optional
       },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+#### Async configuration
+
+Use `forRootAsync` when you need to inject a config service or resolve options at runtime:
+
+```typescript
+import { GarmrModule } from "@neoma/garmr"
+import { Module } from "@nestjs/common"
+import { ConfigModule, ConfigService } from "@nestjs/config"
+import { TypeOrmModule } from "@nestjs/typeorm"
+
+import { User } from "./user.entity"
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({ /* ... */ }),
+    GarmrModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        secret: config.getOrThrow("JWT_SECRET"),
+        expiresIn: "1h",
+        entity: User,
+        mailer: {
+          host: config.getOrThrow("SMTP_HOST"),
+          port: config.getOrThrow<number>("SMTP_PORT"),
+          from: "auth@yourapp.com",
+          welcome: {
+            subject: "Welcome to YourApp",
+            html: '<a href="https://yourapp.com/auth/verify?token={{token}}">Sign up</a>',
+          },
+          welcomeBack: {
+            subject: "Sign in to YourApp",
+            html: '<a href="https://yourapp.com/auth/verify?token={{token}}">Sign in</a>',
+          },
+          auth: {
+            user: config.getOrThrow("SMTP_USER"),
+            pass: config.getOrThrow("SMTP_PASS"),
+          },
+        },
+      }),
+      inject: [ConfigService],
     }),
   ],
 })
@@ -279,7 +327,7 @@ curl http://localhost:3000/me \
 
 #### `GarmrModule.forRoot(options)`
 
-Configures the authentication module. The module is global — import it once in your root module.
+Configures the authentication module with a static options object. The module is global — import it once in your root module.
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -288,6 +336,16 @@ Configures the authentication module. The module is global — import it once in
 | `entity` | `Type<Authenticatable>` | Your user entity class |
 | `mailer` | `MailerOptions` | Email configuration (see below) |
 | `cookie` | `CookieOptions` | Session cookie configuration (optional) |
+
+#### `GarmrModule.forRootAsync(options)`
+
+Configures the authentication module with options resolved via the NestJS DI container.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `imports` | `any[]` | Modules to import (e.g., `ConfigModule`) |
+| `useFactory` | `(...args) => GarmrOptions \| Promise<GarmrOptions>` | Factory function that returns the options |
+| `inject` | `any[]` | Providers to inject into the factory |
 
 #### MailerOptions
 
