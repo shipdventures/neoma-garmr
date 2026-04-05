@@ -3,7 +3,7 @@ import { managedAppInstance } from "@neoma/managed-app"
 import { HttpStatus } from "@nestjs/common"
 import { mailpit } from "fixtures/email/mailpit"
 import { authenticateViaEmail } from "fixtures/fakes/magic-link"
-import * as request from "supertest"
+import request from "supertest"
 import { DataSource } from "typeorm"
 
 const { OK, UNAUTHORIZED, FORBIDDEN } = HttpStatus

@@ -8,7 +8,7 @@ import {
   extractCookieValue,
 } from "fixtures/fakes/magic-link"
 import * as jwt from "jsonwebtoken"
-import * as request from "supertest"
+import request from "supertest"
 import { v4 } from "uuid"
 
 const { OK, UNAUTHORIZED } = HttpStatus

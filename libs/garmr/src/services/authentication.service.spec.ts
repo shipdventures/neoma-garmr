@@ -17,10 +17,10 @@ import { SESSION_AUDIENCE } from "./magic-link.service"
 @Entity()
 class User implements Authenticatable {
   @PrimaryGeneratedColumn("uuid")
-  public id: any
+  public id!: any
 
   @Column({ unique: true })
-  public email: string
+  public email!: string
 }
 
 describe("AuthenticationService", () => {

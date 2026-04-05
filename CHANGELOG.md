@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `UnauthorizedRedirectException` for server-rendered apps — carries redirect metadata via `getRedirect()` for exception filters to handle
+- `Authenticated` guard accepts an optional redirect URL: `new Authenticated("/login")` throws `UnauthorizedRedirectException` (303) instead of plain `UnauthorizedException`
+
+### Fixed
+- Express type augmentation for `req.principal` now published in package output (was excluded because file used `.d.ts` extension)
+- E2E test failures no longer silently pass in CI (removed `--passWithNoTests` flag)
+
 ## [0.6.0] - 2026-04-02
 
 ### Changed

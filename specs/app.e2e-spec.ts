@@ -1,6 +1,6 @@
 import { managedAppInstance } from "@neoma/managed-app"
 import { HttpStatus } from "@nestjs/common"
-import * as request from "supertest"
+import request from "supertest"
 
 describe("AppController (e2e)", () => {
   it(`/status (GET) - responds with a HTTP ${HttpStatus.NO_CONTENT}`, async () => {

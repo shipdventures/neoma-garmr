@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { OutgoingHttpHeader } from "http"
+import { IncomingHttpHeaders, OutgoingHttpHeader } from "http"
 import { OutgoingHttpHeaders } from "http2"
 import { Socket } from "net"
 
@@ -15,15 +15,51 @@ const caseInsensitiveSearch = (
   return obj[key] || obj[key.toLowerCase()]
 }
 
-const convertHeadersToLowerCase = (
-  headers: OutgoingHttpHeaders = {},
-): OutgoingHttpHeaders => {
-  const clonedHeaders = { ...headers }
-  Object.keys(clonedHeaders).forEach((key) => {
-    clonedHeaders[key.toLowerCase()] = clonedHeaders[key]
-    delete clonedHeaders[key]
-  })
-  return clonedHeaders
+const convertHeadersToLowerCase = <T extends Record<string, unknown>>(
+  headers: T = {} as T,
+): T => {
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(headers)) {
+    result[key.toLowerCase()] = headers[key]
+  }
+  return result as T
+}
+
+/**
+ * Mirrors the Express Response interface — method signatures match
+ * express.Response, not the underlying Node http.ServerResponse.
+ */
+export interface MockResponse {
+  getHeaders(): OutgoingHttpHeaders
+  get(name: string): string | undefined
+  header(field: string, value?: string | Array<string>): MockResponse
+  getHeader(name: string): string | number | string[] | undefined
+  setHeader(name: string, value: string | string[]): MockResponse
+  removeHeader(name: string): void
+  cookie: jest.Mock
+  clearCookie: jest.Mock
+  end: jest.Mock
+  status: jest.Mock
+  json: jest.Mock
+  render: jest.Mock
+  redirect: jest.Mock
+  send: jest.Mock
+  locals: Record<string, any>
+}
+
+export interface MockRequest {
+  get(name: string): any
+  header(name: string): any
+  body: any
+  headers: IncomingHttpHeaders
+  method: string
+  url: string
+  res: MockResponse
+  path: string
+  params: Record<string, string>
+  signedCookies: Record<string, string>
+  connection: Socket
+  [key: string]: any
 }
 
 type ExpressFixtures = {
@@ -47,29 +83,30 @@ type ExpressFixtures = {
   cookie(val: string | object, secret?: string): string
 
   /**
-   * Creates a Partial Response object with status, json, and header functions that
+   * Creates a MockResponse with status, json, and header functions that
    * are instances of a jest.Mock and with a locals property.
    *
-   * @param locals Any locals to populate the response's locals property.
-   * @param headers Any headers to set on the response. They will be accessible through
+   * @param options.locals Any locals to populate the response's locals property.
+   * @param options.headers Any headers to set on the response. They will be accessible through
    * both the getHeaders and get functions.
    *
-   * @returns A Partial Response object with status, get, getHeaders, removeHeader, json,
+   * @returns A MockResponse with status, get, getHeaders, removeHeader, json,
    * header, render and send functions, and a locals property.
    */
-  response: (
-    options?: Partial<Response & { headers?: OutgoingHttpHeaders }>,
-  ) => Partial<Response>
+  response: (options?: {
+    locals?: Record<string, any>
+    headers?: OutgoingHttpHeaders
+  }) => MockResponse
 
   /**
-   * Creates a Partial Request object with body, and headers properties, and a partial response
-   * object. Also adds convenience methods get and header to provide case insensitive access to
-   * the request headers.
+   * Creates a MockRequest with body, and headers properties, and a mock response
+   * object. Also adds convenience methods get and header to provide case insensitive
+   * access to the request headers.
    *
-   * @param req A Partial Request to provide values for body, headers, and res objects,
+   * @param req A Partial MockRequest to provide values for body, headers, and res objects,
    * and get, and headers functions. Any properties not provided will use sensible defaults.
    */
-  request: (options?: Partial<Request>) => Partial<Request>
+  request: (options?: Partial<MockRequest>) => MockRequest
 }
 
 export const express: ExpressFixtures = {
@@ -93,11 +130,11 @@ export const express: ExpressFixtures = {
     {
       locals = {},
       headers = {},
-    }: Partial<Response & { headers?: OutgoingHttpHeaders }> = {
+    }: { locals?: Record<string, any>; headers?: OutgoingHttpHeaders } = {
       locals: {},
       headers: {},
     },
-  ): Partial<Response> {
+  ): MockResponse {
     const clonedHeaders = convertHeadersToLowerCase(headers)
     return {
       getHeaders(): OutgoingHttpHeaders {
@@ -106,9 +143,9 @@ export const express: ExpressFixtures = {
       get(name: string): string | undefined {
         return caseInsensitiveSearch(clonedHeaders, name) as string
       },
-      header(field: string, value?: string | Array<string>): Response {
-        clonedHeaders[field] = value
-        return this as Response
+      header(field: string, value?: string | Array<string>): MockResponse {
+        clonedHeaders[field.toLowerCase()] = value
+        return this
       },
       getHeader(name: string): string | number | string[] | undefined {
         return clonedHeaders[name.toLowerCase()] as
@@ -117,9 +154,9 @@ export const express: ExpressFixtures = {
           | string[]
           | undefined
       },
-      setHeader(name: string, value: string | string[]): Response {
+      setHeader(name: string, value: string | string[]): MockResponse {
         clonedHeaders[name.toLowerCase()] = value
-        return this as Response
+        return this
       },
       removeHeader(name): void {
         delete clonedHeaders[name]
@@ -143,42 +180,41 @@ export const express: ExpressFixtures = {
       headers = {},
       method = helpers.arrayElement(["GET", "POST", "PUT", "DELETE", "PATCH"]),
       url = internet.url(),
-      res = express.response() as Response,
+      res = express.response(),
       path = system.filePath(),
       params = {},
       signedCookies = {},
-    }: Partial<Request> = {
+    }: Partial<MockRequest> = {
       body: {},
       headers: {},
       method: helpers.arrayElement(["GET", "POST", "PUT", "DELETE", "PATCH"]),
       url: internet.url(),
-      res: express.response() as Response,
+      res: express.response(),
       path: system.filePath(),
       params: {},
       signedCookies: {},
     },
-  ): Partial<Request> {
-    const req = {
+  ): MockRequest {
+    const normalizedHeaders = convertHeadersToLowerCase(headers)
+    return {
       get(name: string): any {
-        return caseInsensitiveSearch(headers, name)
+        return normalizedHeaders[name.toLowerCase()]
       },
       header(name: string): any {
-        return caseInsensitiveSearch(headers, name) as string
+        return normalizedHeaders[name.toLowerCase()]
       },
       body,
-      headers,
+      headers: normalizedHeaders,
       method,
       url,
-      res: <Response>res,
+      res,
       path,
       params,
       signedCookies,
       // eslint-disable-next-line prefer-rest-params
-      ...(arguments[0] as Partial<Request>),
+      ...(arguments[0] as Partial<MockRequest>),
       // Must include the connection so that the Bunyan req seriazlier treats it as a real request.
       connection: {} as Socket,
     }
-
-    return req
   },
 } as const

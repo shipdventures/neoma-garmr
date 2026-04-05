@@ -19,13 +19,13 @@ type Args = Record<string, { factory: CustomParamFactory }>
 @Entity()
 class User implements Authenticatable {
   @PrimaryGeneratedColumn()
-  public id: number
+  public id!: number
 
   @Column()
-  public email: string
+  public email!: string
 
   @Column()
-  public password: string
+  public password!: string
 }
 
 const id = faker.string.uuid()

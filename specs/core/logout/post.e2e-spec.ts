@@ -6,7 +6,7 @@ import {
   authenticateViaEmail,
   extractCookieValue,
 } from "fixtures/fakes/magic-link"
-import * as request from "supertest"
+import request from "supertest"
 
 const { NO_CONTENT } = HttpStatus
 
