@@ -9,22 +9,28 @@ import { CookieAuthenticationMiddleware } from "./middlewares/cookie-authenticat
  *
  * @requires TypeOrmModule must be configured in your application.
  *
- * @example
+ * @example Static configuration
  * ```typescript
- * import { GarmrModule } from '@neoma/garmr'
- *
- * @Module({
- *   imports: [
- *     TypeOrmModule.forRoot({ ... }),
- *     GarmrModule.forRoot({
- *       secret: process.env.JWT_SECRET,
- *       expiresIn: '1h',
- *       entity: User,
- *       mailer: { ... },
- *     }),
- *   ],
+ * GarmrModule.forRoot({
+ *   secret: process.env.JWT_SECRET,
+ *   expiresIn: '1h',
+ *   entity: User,
+ *   mailer: { ... },
  * })
- * export class AppModule {}
+ * ```
+ *
+ * @example Async configuration via DI
+ * ```typescript
+ * GarmrModule.forRootAsync({
+ *   imports: [ConfigModule],
+ *   useFactory: (config: ConfigService) => ({
+ *     secret: config.get('JWT_SECRET'),
+ *     expiresIn: '1h',
+ *     entity: User,
+ *     mailer: { ... },
+ *   }),
+ *   inject: [ConfigService],
+ * })
  * ```
  */
 @Module({})
