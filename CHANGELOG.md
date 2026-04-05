@@ -7,13 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-05
+
 ### Added
 - `UnauthorizedRedirectException` for server-rendered apps — carries redirect metadata via `getRedirect()` for exception filters to handle
 - `Authenticated` guard accepts an optional redirect URL: `new Authenticated("/login")` throws `UnauthorizedRedirectException` (303) instead of plain `UnauthorizedException`
+- Explicit `MockRequest`/`MockResponse` interfaces in express test fixture (replaces `Partial<Request/Response>`)
 
 ### Fixed
 - Express type augmentation for `req.principal` now published in package output (was excluded because file used `.d.ts` extension)
 - E2E test failures no longer silently pass in CI (removed `--passWithNoTests` flag)
+- Express fixture: lowercase header keys no longer deleted during normalization
+
+### Changed
+- **Dependencies**: TypeScript 6, ESLint 10, nodemailer 8, class-validator 0.15, @types/supertest 7, @neoma/managed-app 0.5
+- Pin `@faker-js/faker` to exact 9.9.0 (last CJS version), remove `transformIgnorePatterns` workaround
+- TypeScript 6 migration: `${configDir}` paths replace deprecated `baseUrl`
+- Supertest namespace imports converted to default imports
 
 ## [0.6.0] - 2026-04-02
 
@@ -132,7 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Setup script for placeholder replacement
 - Comprehensive README documentation
 
-[Unreleased]: https://github.com/shipdventures/neoma-garmr/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/shipdventures/neoma-garmr/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/shipdventures/neoma-garmr/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shipdventures/neoma-garmr/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/shipdventures/neoma-garmr/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/shipdventures/neoma-garmr/compare/v0.4.0...v0.4.1
