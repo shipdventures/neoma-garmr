@@ -9,18 +9,18 @@
     "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "types": ["node", "jest"],
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "fixtures/*": ["fixtures/*"],
-      "@lib": ["libs/garmr/src"],
-      "@lib/*": ["libs/garmr/src/*"],
+      "fixtures/*": ["${configDir}/fixtures/*"],
+      "@lib": ["${configDir}/libs/garmr/src"],
+      "@lib/*": ["${configDir}/libs/garmr/src/*"]
     }
   }
 }

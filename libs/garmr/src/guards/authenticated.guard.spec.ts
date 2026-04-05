@@ -5,8 +5,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common"
 import { Test, TestingModule } from "@nestjs/testing"
-import { Request } from "express"
-import { express } from "fixtures/fakes/express"
+import { express, MockRequest } from "fixtures/fakes/express"
 import { executionContext } from "fixtures/fakes/nestjs"
 
 import { UnauthorizedRedirectException } from "../exceptions/unauthorized-redirect.exception"
@@ -26,7 +25,7 @@ describe("Authenticated", () => {
     })
 
     describe("canActivate", () => {
-      let request: Partial<Request>
+      let request: MockRequest
       let ctx: Partial<ExecutionContext>
       beforeEach(() => {
         request = express.request()
@@ -68,7 +67,7 @@ describe("Authenticated", () => {
     })
 
     describe("canActivate", () => {
-      let request: Partial<Request>
+      let request: MockRequest
       let ctx: Partial<ExecutionContext>
       beforeEach(() => {
         request = express.request()

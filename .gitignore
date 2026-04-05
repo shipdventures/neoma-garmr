@@ -1,6 +1,7 @@
 # compiled output
 dist
 *.tgz
+*.tsbuildinfo
 
 # publish artifacts copied by prepublishOnly
 libs/garmr/README.md

@@ -3,7 +3,7 @@ import { MAGIC_LINK_AUDIENCE, SESSION_AUDIENCE } from "@lib"
 import { managedAppInstance } from "@neoma/managed-app"
 import { HttpStatus } from "@nestjs/common"
 import * as jwt from "jsonwebtoken"
-import * as request from "supertest"
+import request from "supertest"
 import { DataSource } from "typeorm"
 
 const { OK, UNAUTHORIZED } = HttpStatus

@@ -18,10 +18,10 @@ import { SessionService } from "./session.service"
 @Entity()
 class User implements Authenticatable {
   @PrimaryGeneratedColumn("uuid")
-  public id: any
+  public id!: any
 
   @Column({ unique: true })
-  public email: string
+  public email!: string
 }
 
 describe("SessionService", () => {
@@ -65,7 +65,7 @@ describe("SessionService", () => {
     })
 
     it("should issue a token with sub and session audience", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       const result = service.create(res, entity as Authenticatable)
 
       const payload = jwt.verify(result.token, secret) as jwt.JwtPayload
@@ -74,7 +74,7 @@ describe("SessionService", () => {
     })
 
     it("should return the token and decoded payload", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       const result = service.create(res, entity as Authenticatable)
 
       expect(result.token).toBeDefined()
@@ -84,7 +84,7 @@ describe("SessionService", () => {
     })
 
     it("should set a Set-Cookie header with garmr.sid by default", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.create(res, entity as Authenticatable)
 
       const parsed = cookie.parse(res.get("set-cookie")!)
@@ -92,7 +92,7 @@ describe("SessionService", () => {
     })
 
     it("should append to existing Set-Cookie headers rather than overwrite", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       res.setHeader("Set-Cookie", "existing=value")
       service.create(res, entity as Authenticatable)
 
@@ -103,35 +103,35 @@ describe("SessionService", () => {
     })
 
     it("should set httpOnly=true", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.create(res, entity as Authenticatable)
 
       expect(res.get("set-cookie")!.toLowerCase()).toContain("httponly")
     })
 
     it("should set Secure by default", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.create(res, entity as Authenticatable)
 
       expect(res.get("set-cookie")!.toLowerCase()).toContain("secure")
     })
 
     it("should set SameSite=Lax by default", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.create(res, entity as Authenticatable)
 
       expect(res.get("set-cookie")!.toLowerCase()).toContain("samesite=lax")
     })
 
     it("should set Path=/ by default", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.create(res, entity as Authenticatable)
 
       expect(res.get("set-cookie")!).toContain("Path=/")
     })
 
     it("should set Max-Age matching the JWT expiry", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.create(res, entity as Authenticatable)
 
       // expiresIn is "1h" = 3600 seconds
@@ -150,7 +150,7 @@ describe("SessionService", () => {
       })
 
       it("should use the custom cookie name", () => {
-        const res = express.response() as Response
+        const res = express.response() as unknown as Response
         service.create(res, entity as Authenticatable)
 
         const parsed = cookie.parse(res.get("set-cookie")!)
@@ -159,14 +159,14 @@ describe("SessionService", () => {
       })
 
       it("should use the custom domain", () => {
-        const res = express.response() as Response
+        const res = express.response() as unknown as Response
         service.create(res, entity as Authenticatable)
 
         expect(res.get("set-cookie")!).toContain("Domain=example.com")
       })
 
       it("should use custom SameSite", () => {
-        const res = express.response() as Response
+        const res = express.response() as unknown as Response
         service.create(res, entity as Authenticatable)
 
         expect(res.get("set-cookie")!.toLowerCase()).toContain(
@@ -175,14 +175,14 @@ describe("SessionService", () => {
       })
 
       it("should use custom path", () => {
-        const res = express.response() as Response
+        const res = express.response() as unknown as Response
         service.create(res, entity as Authenticatable)
 
         expect(res.get("set-cookie")!).toContain("Path=/api")
       })
 
       it("should not include Secure when secure=false", () => {
-        const res = express.response() as Response
+        const res = express.response() as unknown as Response
         service.create(res, entity as Authenticatable)
 
         expect(res.get("set-cookie")!.toLowerCase()).not.toContain("secure")
@@ -213,14 +213,14 @@ describe("SessionService", () => {
     })
 
     it("should set a cookie with Max-Age=0", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.clear(res)
 
       expect(res.get("set-cookie")!).toContain("Max-Age=0")
     })
 
     it("should set the cookie name to garmr.sid", () => {
-      const res = express.response() as Response
+      const res = express.response() as unknown as Response
       service.clear(res)
 
       const parsed = cookie.parse(res.get("set-cookie")!)

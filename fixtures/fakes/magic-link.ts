@@ -2,7 +2,7 @@ import { Server } from "http"
 
 import { INestApplication } from "@nestjs/common"
 import { mailpit } from "fixtures/email/mailpit"
-import * as request from "supertest"
+import request from "supertest"
 
 export interface AuthResult {
   /** The session JWT from the response body */
