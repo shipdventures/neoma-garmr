@@ -1,20 +1,8 @@
-import {
-  DynamicModule,
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-} from "@nestjs/common"
-import { EventEmitterModule } from "@nestjs/event-emitter"
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common"
 
-import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
-import { Authenticatable } from "./interfaces/authenticatable.interface"
+import { ConfigurableModuleClass } from "./garmr.module-definition"
 import { BearerAuthenticationMiddleware } from "./middlewares/bearer-authentication.middleware"
 import { CookieAuthenticationMiddleware } from "./middlewares/cookie-authentication.middleware"
-import { AuthenticationService } from "./services/authentication.service"
-import { MagicLinkService } from "./services/magic-link.service"
-import { PermissionService } from "./services/permission.service"
-import { SessionService } from "./services/session.service"
-import { TokenService } from "./services/token.service"
 
 /**
  * Passwordless authentication module for NestJS applications.
@@ -40,38 +28,10 @@ import { TokenService } from "./services/token.service"
  * ```
  */
 @Module({})
-export class GarmrModule implements NestModule {
+export class GarmrModule extends ConfigurableModuleClass implements NestModule {
   public configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(BearerAuthenticationMiddleware, CookieAuthenticationMiddleware)
       .forRoutes("*")
-  }
-
-  public static forRoot<T extends Authenticatable>(
-    options: GarmrOptions<T>,
-  ): DynamicModule {
-    return {
-      module: GarmrModule,
-      global: true,
-      imports: [EventEmitterModule.forRoot()],
-      providers: [
-        {
-          provide: GARMR_OPTIONS,
-          useValue: options,
-        },
-        AuthenticationService,
-        MagicLinkService,
-        PermissionService,
-        SessionService,
-        TokenService,
-      ],
-      exports: [
-        AuthenticationService,
-        MagicLinkService,
-        PermissionService,
-        SessionService,
-        TokenService,
-      ],
-    }
   }
 }

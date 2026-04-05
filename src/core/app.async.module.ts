@@ -1,0 +1,53 @@
+import { GarmrModule, GarmrOptions } from "@lib"
+import { Module } from "@nestjs/common"
+import { TypeOrmModule } from "@nestjs/typeorm"
+
+import { User } from "../user.entity"
+
+import { LogoutController } from "./logout.controller"
+import { MagicLinkController } from "./magic-link.controller"
+import { MeController } from "./me.controller"
+import { AdminController, ProtectedController } from "./protected.controller"
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: "sqlite",
+      database: ":memory:",
+      entities: [User],
+      synchronize: true,
+    }),
+    GarmrModule.forRootAsync({
+      useFactory: (): GarmrOptions<User> => ({
+        secret: process.env.GARMR_SECRET!,
+        expiresIn: "1h",
+        entity: User,
+        mailer: {
+          host: process.env.MAILPIT_HOST!,
+          port: parseInt(process.env.MAILPIT_PORT!),
+          from: process.env.MAGIC_LINK_FROM!,
+          welcome: {
+            subject: process.env.MAGIC_LINK_WELCOME_SUBJECT!,
+            html: `<a href="${process.env.APP_URL!}/magic-link/verify?token={{token}}">Sign up</a>`,
+          },
+          welcomeBack: {
+            subject: process.env.MAGIC_LINK_WELCOME_BACK_SUBJECT!,
+            html: `<a href="${process.env.APP_URL!}/magic-link/verify?token={{token}}">Sign in</a>`,
+          },
+          auth: {
+            user: process.env.MAILPIT_AUTH_USER!,
+            pass: process.env.MAILPIT_AUTH_PASS!,
+          },
+        },
+      }),
+    }),
+  ],
+  controllers: [
+    LogoutController,
+    MagicLinkController,
+    MeController,
+    ProtectedController,
+    AdminController,
+  ],
+})
+export class AsyncAppModule {}
