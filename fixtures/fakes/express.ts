@@ -18,12 +18,11 @@ const caseInsensitiveSearch = (
 const convertHeadersToLowerCase = <T extends Record<string, unknown>>(
   headers: T = {} as T,
 ): T => {
-  const clonedHeaders = { ...headers } as Record<string, unknown>
-  Object.keys(clonedHeaders).forEach((key) => {
-    clonedHeaders[key.toLowerCase()] = clonedHeaders[key]
-    delete clonedHeaders[key]
-  })
-  return clonedHeaders as T
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(headers)) {
+    result[key.toLowerCase()] = headers[key]
+  }
+  return result as T
 }
 
 /**
