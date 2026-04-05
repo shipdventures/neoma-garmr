@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { OutgoingHttpHeader } from "http"
+import { IncomingHttpHeaders, OutgoingHttpHeader } from "http"
 import { OutgoingHttpHeaders } from "http2"
 import { Socket } from "net"
 
@@ -15,17 +15,21 @@ const caseInsensitiveSearch = (
   return obj[key] || obj[key.toLowerCase()]
 }
 
-const convertHeadersToLowerCase = (
-  headers: OutgoingHttpHeaders = {},
-): OutgoingHttpHeaders => {
-  const clonedHeaders = { ...headers }
+const convertHeadersToLowerCase = <T extends Record<string, unknown>>(
+  headers: T = {} as T,
+): T => {
+  const clonedHeaders = { ...headers } as Record<string, unknown>
   Object.keys(clonedHeaders).forEach((key) => {
     clonedHeaders[key.toLowerCase()] = clonedHeaders[key]
     delete clonedHeaders[key]
   })
-  return clonedHeaders
+  return clonedHeaders as T
 }
 
+/**
+ * Mirrors the Express Response interface — method signatures match
+ * express.Response, not the underlying Node http.ServerResponse.
+ */
 export interface MockResponse {
   getHeaders(): OutgoingHttpHeaders
   get(name: string): string | undefined
@@ -48,7 +52,7 @@ export interface MockRequest {
   get(name: string): any
   header(name: string): any
   body: any
-  headers: Record<string, string | string[] | undefined>
+  headers: IncomingHttpHeaders
   method: string
   url: string
   res: MockResponse
@@ -141,7 +145,7 @@ export const express: ExpressFixtures = {
         return caseInsensitiveSearch(clonedHeaders, name) as string
       },
       header(field: string, value?: string | Array<string>): MockResponse {
-        clonedHeaders[field] = value
+        clonedHeaders[field.toLowerCase()] = value
         return this
       },
       getHeader(name: string): string | number | string[] | undefined {
@@ -192,15 +196,16 @@ export const express: ExpressFixtures = {
       signedCookies: {},
     },
   ): MockRequest {
+    const normalizedHeaders = convertHeadersToLowerCase(headers)
     return {
       get(name: string): any {
-        return caseInsensitiveSearch(headers, name)
+        return normalizedHeaders[name.toLowerCase()]
       },
       header(name: string): any {
-        return caseInsensitiveSearch(headers, name) as string
+        return normalizedHeaders[name.toLowerCase()]
       },
       body,
-      headers,
+      headers: normalizedHeaders,
       method,
       url,
       res,
