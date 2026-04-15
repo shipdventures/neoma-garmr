@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `WebhookSignatureGuard` for Svix-standard HMAC-SHA256 webhook signature verification
+- `WebhookOptions` interface and optional `webhook` property on `GarmrOptions`
+
 ## [0.8.0] - 2026-04-05
 
 ### Added

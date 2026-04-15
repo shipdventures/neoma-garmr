@@ -14,6 +14,7 @@ Password authentication requires secure hashing, strength validation, reset flow
 - Dual transport: Bearer token and cookie authentication middlewares
 - Route protection with guards and decorators
 - Permission-based authorization with wildcard support (`@RequiresPermission`, `@RequiresAnyPermission`)
+- Webhook signature verification (Svix-standard HMAC-SHA256)
 - Email normalization (case-insensitive)
 - Event emission for registration and authentication
 
@@ -336,6 +337,7 @@ Configures the authentication module with a static options object. The module is
 | `entity` | `Type<Authenticatable>` | Your user entity class |
 | `mailer` | `MailerOptions` | Email configuration (see below) |
 | `cookie` | `CookieOptions` | Session cookie configuration (optional) |
+| `webhook` | `WebhookOptions` | Webhook signature verification configuration (optional) |
 
 #### `GarmrModule.forRootAsync(options)`
 
@@ -375,6 +377,12 @@ Configures the authentication module with options resolved via the NestJS DI con
 | `path` | `string` | `"/"` | Cookie path |
 | `secure` | `boolean` | `true` | Only send over HTTPS |
 | `sameSite` | `"strict" \| "lax" \| "none"` | `"lax"` | SameSite attribute |
+
+#### WebhookOptions
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `secret` | `string` | Webhook signing secret in Svix format (`whsec_` prefix + base64-encoded key) |
 
 ### Services
 
@@ -451,6 +459,47 @@ For server-rendered apps, pass a redirect URL. The guard throws `UnauthorizedRed
 @Controller("dashboard")
 export class DashboardController {}
 ```
+
+#### WebhookSignatureGuard
+
+A guard that verifies Svix-standard HMAC-SHA256 webhook signatures. Validates the `svix-signature` header against the request's raw body using the secret configured in `GarmrOptions.webhook`.
+
+Requires `rawBody: true` on the NestJS application factory:
+
+```typescript
+const app = await NestFactory.create(AppModule, { rawBody: true })
+```
+
+Configure the webhook secret in your module options:
+
+```typescript
+GarmrModule.forRoot({
+  // ... other options
+  webhook: {
+    secret: process.env.WEBHOOK_SECRET, // e.g. "whsec_MfKQ9r8GKYqrTwjUPD..."
+  },
+})
+```
+
+Apply the guard to webhook endpoints:
+
+```typescript
+@Post("webhooks/inbound-email")
+@UseGuards(WebhookSignatureGuard)
+async handleInboundEmail(@Body() payload: InboundEmailPayload) {
+  // Guard already verified the signature
+}
+```
+
+The guard:
+- Checks for required Svix headers (`svix-id`, `svix-timestamp`, `svix-signature`)
+- Strips the `whsec_` prefix from the secret and base64-decodes the key
+- Computes HMAC-SHA256 over `${svix-id}.${svix-timestamp}.${rawBody}`
+- Supports multiple signatures in the header (space-separated)
+- Uses `crypto.timingSafeEqual` for constant-time signature comparison
+- Throws `UnauthorizedException` (401) for any verification failure
+
+The Svix signing standard is used by Resend, Clerk, Svix, and other webhook providers.
 
 ### Decorators
 

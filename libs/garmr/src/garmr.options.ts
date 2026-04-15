@@ -82,6 +82,19 @@ export interface CookieOptions {
  * })
  * ```
  */
+/**
+ * Configuration options for webhook signature verification.
+ */
+export interface WebhookOptions {
+  /**
+   * The webhook signing secret in Svix format: `whsec_` prefix followed
+   * by a base64-encoded key.
+   *
+   * @example "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+   */
+  secret: string
+}
+
 export interface GarmrOptions<T extends Authenticatable = Authenticatable> {
   /** Secret key used to sign and verify JWTs */
   secret: string
@@ -93,4 +106,6 @@ export interface GarmrOptions<T extends Authenticatable = Authenticatable> {
   mailer: MailerOptions
   /** Session cookie configuration */
   cookie?: CookieOptions
+  /** Webhook signature verification configuration */
+  webhook?: WebhookOptions
 }

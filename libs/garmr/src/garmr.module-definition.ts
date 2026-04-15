@@ -2,6 +2,7 @@ import { ConfigurableModuleBuilder } from "@nestjs/common"
 import { EventEmitterModule } from "@nestjs/event-emitter"
 
 import { GarmrOptions, GARMR_OPTIONS } from "./garmr.options"
+import { WebhookSignatureGuard } from "./guards/webhook-signature.guard"
 import { AuthenticationService } from "./services/authentication.service"
 import { MagicLinkService } from "./services/magic-link.service"
 import { PermissionService } from "./services/permission.service"
@@ -14,6 +15,7 @@ const GARMR_PROVIDERS = [
   PermissionService,
   SessionService,
   TokenService,
+  WebhookSignatureGuard,
 ]
 
 export const {
@@ -30,6 +32,6 @@ export const {
     global: true,
     imports: [EventEmitterModule.forRoot(), ...(definition.imports ?? [])],
     providers: [...(definition.providers ?? []), ...GARMR_PROVIDERS],
-    exports: GARMR_PROVIDERS,
+    exports: [...(definition.exports ?? []), ...GARMR_PROVIDERS, GARMR_OPTIONS],
   }))
   .build()

@@ -25,6 +25,7 @@ export * from "./decorators/requires-any-permission.decorator"
 // Guards used directly by consumers
 export * from "./guards/authenticated.guard"
 export * from "./guards/requires-permission.guard"
+export * from "./guards/webhook-signature.guard"
 
 // Exceptions consumers may catch or reference in filters
 export * from "./exceptions/incorrect-credentials.exception"
