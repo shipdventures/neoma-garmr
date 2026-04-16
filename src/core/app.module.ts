@@ -8,6 +8,7 @@ import { LogoutController } from "./logout.controller"
 import { MagicLinkController } from "./magic-link.controller"
 import { MeController } from "./me.controller"
 import { AdminController, ProtectedController } from "./protected.controller"
+import { WebhookController } from "./webhook.controller"
 
 @Module({
   imports: [
@@ -38,6 +39,9 @@ import { AdminController, ProtectedController } from "./protected.controller"
           pass: process.env.MAILPIT_AUTH_PASS!,
         },
       },
+      webhook: {
+        secret: process.env.WEBHOOK_SECRET!,
+      },
     }),
   ],
   controllers: [
@@ -46,6 +50,7 @@ import { AdminController, ProtectedController } from "./protected.controller"
     MeController,
     ProtectedController,
     AdminController,
+    WebhookController,
   ],
 })
 export class AppModule {}

@@ -30,6 +30,11 @@ export const {
     global: true,
     imports: [EventEmitterModule.forRoot(), ...(definition.imports ?? [])],
     providers: [...(definition.providers ?? []), ...GARMR_PROVIDERS],
-    exports: GARMR_PROVIDERS,
+    // Services are exported so consumers can inject them directly
+    // (e.g. AuthenticationService, SessionService).
+    // GARMR_OPTIONS is exported so that guards resolved on-demand
+    // (e.g. WebhookSignatureGuard) can access the configuration
+    // via @Inject(GARMR_OPTIONS).
+    exports: [...(definition.exports ?? []), ...GARMR_PROVIDERS, GARMR_OPTIONS],
   }))
   .build()
