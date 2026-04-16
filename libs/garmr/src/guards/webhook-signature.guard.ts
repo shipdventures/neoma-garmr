@@ -29,41 +29,44 @@ import { GarmrOptions, GARMR_OPTIONS } from "../garmr.options"
  * }
  * ```
  *
- * @throws {InternalServerErrorException} If webhook config is missing or rawBody
- * is unavailable (server misconfiguration).
+ * @throws {Error} If `webhook.secret` is not configured in GarmrModule options
+ * (boot-time configuration error).
+ * @throws {InternalServerErrorException} If rawBody is unavailable (server
+ * misconfiguration).
  * @throws {UnauthorizedException} If headers are missing or signature is invalid.
  */
 @Injectable()
 export class WebhookSignatureGuard implements CanActivate {
   public constructor(
     @Inject(GARMR_OPTIONS) private readonly options: GarmrOptions,
-  ) {}
+  ) {
+    if (!this.options.webhook?.secret) {
+      throw new Error(
+        "WebhookSignatureGuard requires webhook.secret to be configured in GarmrModule options.",
+      )
+    }
+  }
 
   /**
    * Validates the Svix-standard HMAC-SHA256 signature on the incoming request.
    *
    * @param context - Execution context providing access to the request
    * @returns true if the signature is valid
-   * @throws {InternalServerErrorException} If webhook secret is not configured
-   * or rawBody is not available (server misconfiguration)
+   * @throws {InternalServerErrorException} If rawBody is not available
+   * (server misconfiguration)
    * @throws {UnauthorizedException} If required headers are missing or the
    * signature is invalid
    */
   public canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest()
+    const webhookSecret = this.options.webhook!.secret
 
-    // 1. Check webhook config exists
-    const webhookSecret = this.options.webhook?.secret
-    if (!webhookSecret) {
-      throw new InternalServerErrorException("Internal server error")
-    }
-
-    // 2. Check rawBody is available
+    // 1. Verify rawBody is available
     if (!req.rawBody) {
       throw new InternalServerErrorException("Internal server error")
     }
 
-    // 3. Extract required headers
+    // 2. Extract required headers
     const svixId = req.headers["svix-id"] as string | undefined
     const svixTimestamp = req.headers["svix-timestamp"] as string | undefined
     const svixSignature = req.headers["svix-signature"] as string | undefined
@@ -74,19 +77,19 @@ export class WebhookSignatureGuard implements CanActivate {
       )
     }
 
-    // 4. Derive signing key: strip "whsec_" prefix, base64-decode
+    // 3. Derive signing key: strip "whsec_" prefix, base64-decode
     const keyBase64 = webhookSecret.startsWith("whsec_")
       ? webhookSecret.slice(6)
       : webhookSecret
     const key = Buffer.from(keyBase64, "base64")
 
-    // 5. Build signed content and compute expected signature
+    // 4. Build signed content and compute expected signature
     const signedContent = `${svixId}.${svixTimestamp}.${req.rawBody}`
     const expectedSignature = createHmac("sha256", key)
       .update(signedContent)
       .digest()
 
-    // 6. Check each signature in the header (space-separated, v1-prefixed)
+    // 5. Check each signature in the header (space-separated, v1-prefixed)
     const signatures = svixSignature.split(" ")
     for (const sig of signatures) {
       const parts = sig.split(",")

@@ -398,48 +398,22 @@ describe("WebhookSignatureGuard", () => {
   })
 
   describe("When webhook config is not provided", () => {
-    let guard: WebhookSignatureGuard
-
-    beforeEach(async () => {
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          WebhookSignatureGuard,
-          {
-            provide: GARMR_OPTIONS,
-            useValue: {
-              ...DEFAULT_OPTIONS,
-              webhook: undefined,
+    it("then it should throw an Error during construction", async () => {
+      await expect(
+        Test.createTestingModule({
+          providers: [
+            WebhookSignatureGuard,
+            {
+              provide: GARMR_OPTIONS,
+              useValue: {
+                ...DEFAULT_OPTIONS,
+                webhook: undefined,
+              },
             },
-          },
-        ],
-      }).compile()
-
-      guard = module.get(WebhookSignatureGuard)
-    })
-
-    it("then it should throw InternalServerErrorException", () => {
-      const signature = computeSignature(
-        TEST_SECRET,
-        SVIX_ID,
-        SVIX_TIMESTAMP,
-        BODY,
-      )
-      const request = express.request({
-        method: "POST",
-        body: JSON.parse(BODY),
-        headers: {
-          "svix-id": SVIX_ID,
-          "svix-timestamp": SVIX_TIMESTAMP,
-          "svix-signature": signature,
-          "content-type": "application/json",
-        },
-      })
-      request.rawBody = Buffer.from(BODY)
-
-      const ctx = executionContext(request, express.response())
-      expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
-        InternalServerErrorException,
-        { message: "Internal server error" },
+          ],
+        }).compile(),
+      ).rejects.toThrow(
+        "WebhookSignatureGuard requires webhook.secret to be configured in GarmrModule options.",
       )
     })
   })
