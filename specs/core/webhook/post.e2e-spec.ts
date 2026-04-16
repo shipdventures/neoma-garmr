@@ -43,7 +43,7 @@ appModules.forEach(([name, modulePath]) => {
     })
 
     describe("When a request is made with a valid signature", () => {
-      it("should respond with HTTP 200", async () => {
+      it("then it should respond with HTTP 200", async () => {
         const bodyString = JSON.stringify(BODY)
         const signature = computeSignature(
           TEST_SECRET,
@@ -64,7 +64,7 @@ appModules.forEach(([name, modulePath]) => {
     })
 
     describe("When a request is made with an invalid signature", () => {
-      it("should respond with HTTP 401", async () => {
+      it("then it should respond with HTTP 401", async () => {
         await request(app.getHttpServer())
           .post("/webhooks")
           .set("svix-id", SVIX_ID)
@@ -74,14 +74,14 @@ appModules.forEach(([name, modulePath]) => {
           .expect(UNAUTHORIZED)
           .expect({
             statusCode: UNAUTHORIZED,
-            message: "Invalid webhook signature.",
+            message: "Invalid webhook signature",
             error: "Unauthorized",
           })
       })
     })
 
     describe("When a request is made without svix headers", () => {
-      it("should respond with HTTP 401", async () => {
+      it("then it should respond with HTTP 401", async () => {
         await request(app.getHttpServer())
           .post("/webhooks")
           .send(BODY)
@@ -89,14 +89,47 @@ appModules.forEach(([name, modulePath]) => {
           .expect({
             statusCode: UNAUTHORIZED,
             message:
-              "Missing required webhook headers: svix-id, svix-timestamp, svix-signature.",
+              "Missing required webhook headers: svix-id, svix-timestamp, svix-signature",
+            error: "Unauthorized",
+          })
+      })
+    })
+
+    describe("When a request is made with partial svix headers", () => {
+      it("then it should respond with HTTP 401", async () => {
+        await request(app.getHttpServer())
+          .post("/webhooks")
+          .set("svix-id", SVIX_ID)
+          .send(BODY)
+          .expect(UNAUTHORIZED)
+          .expect({
+            statusCode: UNAUTHORIZED,
+            message:
+              "Missing required webhook headers: svix-id, svix-timestamp, svix-signature",
+            error: "Unauthorized",
+          })
+      })
+    })
+
+    describe("When a request is made with a signature missing the v1 prefix", () => {
+      it("then it should respond with HTTP 401", async () => {
+        await request(app.getHttpServer())
+          .post("/webhooks")
+          .set("svix-id", SVIX_ID)
+          .set("svix-timestamp", SVIX_TIMESTAMP)
+          .set("svix-signature", "noprefixsignature")
+          .send(BODY)
+          .expect(UNAUTHORIZED)
+          .expect({
+            statusCode: UNAUTHORIZED,
+            message: "Invalid webhook signature",
             error: "Unauthorized",
           })
       })
     })
 
     describe("When a request is made with a tampered body", () => {
-      it("should respond with HTTP 401", async () => {
+      it("then it should respond with HTTP 401", async () => {
         const originalBody = JSON.stringify(BODY)
         const signature = computeSignature(
           TEST_SECRET,
@@ -114,7 +147,7 @@ appModules.forEach(([name, modulePath]) => {
           .expect(UNAUTHORIZED)
           .expect({
             statusCode: UNAUTHORIZED,
-            message: "Invalid webhook signature.",
+            message: "Invalid webhook signature",
             error: "Unauthorized",
           })
       })

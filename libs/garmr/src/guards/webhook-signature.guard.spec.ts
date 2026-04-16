@@ -1,8 +1,12 @@
 import { createHmac } from "crypto"
 
-import { ExecutionContext, UnauthorizedException } from "@nestjs/common"
+import {
+  ExecutionContext,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from "@nestjs/common"
 import { Test, TestingModule } from "@nestjs/testing"
-import { express, MockRequest } from "fixtures/fakes/express"
+import { express } from "fixtures/fakes/express"
 import { executionContext } from "fixtures/fakes/nestjs"
 
 import { GarmrOptions, GARMR_OPTIONS } from "../garmr.options"
@@ -33,69 +37,73 @@ const SVIX_ID = "msg_2Lx0r7Gmz1lL7dK3n4y5j"
 const SVIX_TIMESTAMP = "1713200000"
 const BODY = JSON.stringify({ type: "user.created", data: { id: "usr_123" } })
 
+class User {
+  public id!: string
+  public email!: string
+}
+
+const DEFAULT_OPTIONS: GarmrOptions = {
+  secret: "jwt-secret",
+  expiresIn: "1h",
+  entity: User,
+  mailer: {} as any,
+  webhook: { secret: TEST_SECRET },
+}
+
 describe("WebhookSignatureGuard", () => {
-  let guard: WebhookSignatureGuard
-
-  const buildGuard = async (
-    options: Partial<GarmrOptions> = {},
-  ): Promise<WebhookSignatureGuard> => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        WebhookSignatureGuard,
-        {
-          provide: GARMR_OPTIONS,
-          useValue: {
-            secret: "jwt-secret",
-            expiresIn: "1h",
-            entity: class User {},
-            mailer: {} as any,
-            ...options,
-          },
-        },
-      ],
-    }).compile()
-
-    return module.get(WebhookSignatureGuard)
-  }
-
-  const buildRequest = (overrides: Partial<MockRequest> = {}): MockRequest => {
-    const signature = computeSignature(
-      TEST_SECRET,
-      SVIX_ID,
-      SVIX_TIMESTAMP,
-      BODY,
-    )
-    const request = express.request({
-      method: "POST",
-      body: JSON.parse(BODY),
-      headers: {
-        "svix-id": SVIX_ID,
-        "svix-timestamp": SVIX_TIMESTAMP,
-        "svix-signature": signature,
-        "content-type": "application/json",
-        ...overrides.headers,
-      },
-      ...overrides,
-    })
-    request.rawBody = Buffer.from(BODY)
-    return request
-  }
-
-  beforeEach(async () => {
-    guard = await buildGuard({ webhook: { secret: TEST_SECRET } })
-  })
-
   describe("When the request has a valid signature", () => {
-    it("should return true", () => {
-      const request = buildRequest()
-      const ctx = executionContext(request, express.response())
+    let guard: WebhookSignatureGuard
 
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should return true", () => {
+      const signature = computeSignature(
+        TEST_SECRET,
+        SVIX_ID,
+        SVIX_TIMESTAMP,
+        BODY,
+      )
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
+        headers: {
+          "svix-id": SVIX_ID,
+          "svix-timestamp": SVIX_TIMESTAMP,
+          "svix-signature": signature,
+          "content-type": "application/json",
+        },
+      })
+      request.rawBody = Buffer.from(BODY)
+
+      const ctx = executionContext(request, express.response())
       expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
     })
   })
 
   describe("When the signature header contains multiple signatures with one valid", () => {
-    it("should return true", () => {
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should return true", () => {
       const validSig = computeSignature(
         TEST_SECRET,
         SVIX_ID,
@@ -103,7 +111,9 @@ describe("WebhookSignatureGuard", () => {
         BODY,
       )
       const invalidSig = "v1,aW52YWxpZHNpZ25hdHVyZQ=="
-      const request = buildRequest({
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
         headers: {
           "svix-id": SVIX_ID,
           "svix-timestamp": SVIX_TIMESTAMP,
@@ -111,6 +121,7 @@ describe("WebhookSignatureGuard", () => {
           "content-type": "application/json",
         },
       })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
       expect(guard.canActivate(<ExecutionContext>ctx)).toBeTrue()
@@ -118,7 +129,20 @@ describe("WebhookSignatureGuard", () => {
   })
 
   describe("When the signature is invalid (wrong secret)", () => {
-    it("should throw UnauthorizedException", () => {
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw UnauthorizedException", () => {
       const wrongSecret = "whsec_dGhpc2lzYXdyb25nc2VjcmV0"
       const wrongSig = computeSignature(
         wrongSecret,
@@ -126,7 +150,9 @@ describe("WebhookSignatureGuard", () => {
         SVIX_TIMESTAMP,
         BODY,
       )
-      const request = buildRequest({
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
         headers: {
           "svix-id": SVIX_ID,
           "svix-timestamp": SVIX_TIMESTAMP,
@@ -134,94 +160,186 @@ describe("WebhookSignatureGuard", () => {
           "content-type": "application/json",
         },
       })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
         UnauthorizedException,
-        { message: "Invalid webhook signature." },
+        { message: "Invalid webhook signature" },
       )
     })
   })
 
   describe("When the body has been tampered with", () => {
-    it("should throw UnauthorizedException", () => {
-      const request = buildRequest()
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw UnauthorizedException", () => {
+      const signature = computeSignature(
+        TEST_SECRET,
+        SVIX_ID,
+        SVIX_TIMESTAMP,
+        BODY,
+      )
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
+        headers: {
+          "svix-id": SVIX_ID,
+          "svix-timestamp": SVIX_TIMESTAMP,
+          "svix-signature": signature,
+          "content-type": "application/json",
+        },
+      })
       request.rawBody = Buffer.from(JSON.stringify({ tampered: true }))
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
         UnauthorizedException,
-        { message: "Invalid webhook signature." },
+        { message: "Invalid webhook signature" },
       )
     })
   })
 
   describe("When the svix-id header is missing", () => {
-    it("should throw UnauthorizedException", () => {
-      const request = buildRequest({
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw UnauthorizedException", () => {
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
         headers: {
           "svix-timestamp": SVIX_TIMESTAMP,
           "svix-signature": "v1,abc",
           "content-type": "application/json",
         },
       })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
         UnauthorizedException,
         {
           message:
-            "Missing required webhook headers: svix-id, svix-timestamp, svix-signature.",
+            "Missing required webhook headers: svix-id, svix-timestamp, svix-signature",
         },
       )
     })
   })
 
   describe("When the svix-timestamp header is missing", () => {
-    it("should throw UnauthorizedException", () => {
-      const request = buildRequest({
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw UnauthorizedException", () => {
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
         headers: {
           "svix-id": SVIX_ID,
           "svix-signature": "v1,abc",
           "content-type": "application/json",
         },
       })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
         UnauthorizedException,
         {
           message:
-            "Missing required webhook headers: svix-id, svix-timestamp, svix-signature.",
+            "Missing required webhook headers: svix-id, svix-timestamp, svix-signature",
         },
       )
     })
   })
 
   describe("When the svix-signature header is missing", () => {
-    it("should throw UnauthorizedException", () => {
-      const request = buildRequest({
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw UnauthorizedException", () => {
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
         headers: {
           "svix-id": SVIX_ID,
           "svix-timestamp": SVIX_TIMESTAMP,
           "content-type": "application/json",
         },
       })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
         UnauthorizedException,
         {
           message:
-            "Missing required webhook headers: svix-id, svix-timestamp, svix-signature.",
+            "Missing required webhook headers: svix-id, svix-timestamp, svix-signature",
         },
       )
     })
   })
 
   describe("When the signature header has no v1 prefix", () => {
-    it("should throw UnauthorizedException", () => {
-      const request = buildRequest({
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw UnauthorizedException", () => {
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
         headers: {
           "svix-id": SVIX_ID,
           "svix-timestamp": SVIX_TIMESTAMP,
@@ -229,43 +347,100 @@ describe("WebhookSignatureGuard", () => {
           "content-type": "application/json",
         },
       })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
         UnauthorizedException,
-        { message: "Invalid webhook signature." },
+        { message: "Invalid webhook signature" },
       )
     })
   })
 
   describe("When rawBody is not available on the request", () => {
-    it("should throw UnauthorizedException with a descriptive message", () => {
-      const request = buildRequest()
-      delete request.rawBody
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          { provide: GARMR_OPTIONS, useValue: { ...DEFAULT_OPTIONS } },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw InternalServerErrorException", () => {
+      const signature = computeSignature(
+        TEST_SECRET,
+        SVIX_ID,
+        SVIX_TIMESTAMP,
+        BODY,
+      )
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
+        headers: {
+          "svix-id": SVIX_ID,
+          "svix-timestamp": SVIX_TIMESTAMP,
+          "svix-signature": signature,
+          "content-type": "application/json",
+        },
+      })
 
       const ctx = executionContext(request, express.response())
       expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
-        UnauthorizedException,
-        {
-          message:
-            "WebhookSignatureGuard requires rawBody: true on the NestJS application factory.",
-        },
+        InternalServerErrorException,
+        { message: "Internal server error" },
       )
     })
   })
 
   describe("When webhook config is not provided", () => {
-    it("should throw UnauthorizedException with a descriptive message", async () => {
-      const guardNoConfig = await buildGuard({ webhook: undefined })
-      const request = buildRequest()
+    let guard: WebhookSignatureGuard
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          WebhookSignatureGuard,
+          {
+            provide: GARMR_OPTIONS,
+            useValue: {
+              ...DEFAULT_OPTIONS,
+              webhook: undefined,
+            },
+          },
+        ],
+      }).compile()
+
+      guard = module.get(WebhookSignatureGuard)
+    })
+
+    it("then it should throw InternalServerErrorException", () => {
+      const signature = computeSignature(
+        TEST_SECRET,
+        SVIX_ID,
+        SVIX_TIMESTAMP,
+        BODY,
+      )
+      const request = express.request({
+        method: "POST",
+        body: JSON.parse(BODY),
+        headers: {
+          "svix-id": SVIX_ID,
+          "svix-timestamp": SVIX_TIMESTAMP,
+          "svix-signature": signature,
+          "content-type": "application/json",
+        },
+      })
+      request.rawBody = Buffer.from(BODY)
 
       const ctx = executionContext(request, express.response())
-      expect(() =>
-        guardNoConfig.canActivate(<ExecutionContext>ctx),
-      ).toThrowMatching(UnauthorizedException, {
-        message:
-          "WebhookSignatureGuard requires webhook.secret to be configured in GarmrModule options.",
-      })
+      expect(() => guard.canActivate(<ExecutionContext>ctx)).toThrowMatching(
+        InternalServerErrorException,
+        { message: "Internal server error" },
+      )
     })
   })
 })

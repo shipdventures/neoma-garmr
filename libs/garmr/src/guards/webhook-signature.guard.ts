@@ -5,6 +5,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from "@nestjs/common"
 
@@ -28,8 +29,9 @@ import { GarmrOptions, GARMR_OPTIONS } from "../garmr.options"
  * }
  * ```
  *
- * @throws {UnauthorizedException} If headers are missing, signature is invalid,
- * rawBody is unavailable, or webhook config is missing.
+ * @throws {InternalServerErrorException} If webhook config is missing or rawBody
+ * is unavailable (server misconfiguration).
+ * @throws {UnauthorizedException} If headers are missing or signature is invalid.
  */
 @Injectable()
 export class WebhookSignatureGuard implements CanActivate {
@@ -42,7 +44,10 @@ export class WebhookSignatureGuard implements CanActivate {
    *
    * @param context - Execution context providing access to the request
    * @returns true if the signature is valid
-   * @throws {UnauthorizedException} If verification fails for any reason
+   * @throws {InternalServerErrorException} If webhook secret is not configured
+   * or rawBody is not available (server misconfiguration)
+   * @throws {UnauthorizedException} If required headers are missing or the
+   * signature is invalid
    */
   public canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest()
@@ -50,16 +55,12 @@ export class WebhookSignatureGuard implements CanActivate {
     // 1. Check webhook config exists
     const webhookSecret = this.options.webhook?.secret
     if (!webhookSecret) {
-      throw new UnauthorizedException(
-        "WebhookSignatureGuard requires webhook.secret to be configured in GarmrModule options.",
-      )
+      throw new InternalServerErrorException("Internal server error")
     }
 
     // 2. Check rawBody is available
     if (!req.rawBody) {
-      throw new UnauthorizedException(
-        "WebhookSignatureGuard requires rawBody: true on the NestJS application factory.",
-      )
+      throw new InternalServerErrorException("Internal server error")
     }
 
     // 3. Extract required headers
@@ -69,7 +70,7 @@ export class WebhookSignatureGuard implements CanActivate {
 
     if (!svixId || !svixTimestamp || !svixSignature) {
       throw new UnauthorizedException(
-        "Missing required webhook headers: svix-id, svix-timestamp, svix-signature.",
+        "Missing required webhook headers: svix-id, svix-timestamp, svix-signature",
       )
     }
 
@@ -103,6 +104,6 @@ export class WebhookSignatureGuard implements CanActivate {
       }
     }
 
-    throw new UnauthorizedException("Invalid webhook signature.")
+    throw new UnauthorizedException("Invalid webhook signature")
   }
 }
