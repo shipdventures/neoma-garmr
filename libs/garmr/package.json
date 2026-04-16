@@ -1,6 +1,6 @@
 {
   "name": "@neoma/garmr",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Passwordless authentication and permission-based authorization for NestJS. Magic links, cookie/bearer sessions, and wildcard permissions.",
   "author": "Shipdventures",
   "repository": {
