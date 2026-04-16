@@ -37,6 +37,13 @@ import { GarmrOptions, GARMR_OPTIONS } from "../garmr.options"
  */
 @Injectable()
 export class WebhookSignatureGuard implements CanActivate {
+  /**
+   * Validates that `webhook.secret` is configured and fails fast during
+   * module initialisation if it is missing.
+   *
+   * @param options - The Garmr module options injected via DI
+   * @throws {Error} If `webhook.secret` is not configured in GarmrModule options
+   */
   public constructor(
     @Inject(GARMR_OPTIONS) private readonly options: GarmrOptions,
   ) {

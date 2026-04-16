@@ -4,7 +4,7 @@ import { managedAppInstance } from "@neoma/managed-app"
 import { HttpStatus } from "@nestjs/common"
 import request from "supertest"
 
-const { OK, UNAUTHORIZED } = HttpStatus
+const { OK, UNAUTHORIZED, INTERNAL_SERVER_ERROR } = HttpStatus
 
 const TEST_SECRET = process.env.WEBHOOK_SECRET!
 const SVIX_ID = "msg_2Lx0r7Gmz1lL7dK3n4y5j"
@@ -151,6 +151,41 @@ appModules.forEach(([name, modulePath]) => {
             error: "Unauthorized",
           })
       })
+    })
+  })
+})
+
+describe("POST /webhooks (rawBody disabled)", () => {
+  let app: Awaited<ReturnType<typeof managedAppInstance>>
+
+  beforeEach(async () => {
+    app = await managedAppInstance({
+      module: "src/core/app.module.ts#AppModule",
+    })
+  })
+
+  describe("When a validly-signed request is made without rawBody enabled", () => {
+    it("then it should respond with HTTP 500", async () => {
+      const bodyString = JSON.stringify(BODY)
+      const signature = computeSignature(
+        TEST_SECRET,
+        SVIX_ID,
+        SVIX_TIMESTAMP,
+        bodyString,
+      )
+
+      await request(app.getHttpServer())
+        .post("/webhooks")
+        .set("svix-id", SVIX_ID)
+        .set("svix-timestamp", SVIX_TIMESTAMP)
+        .set("svix-signature", signature)
+        .send(BODY)
+        .expect(INTERNAL_SERVER_ERROR)
+        .expect({
+          statusCode: INTERNAL_SERVER_ERROR,
+          message: "Internal server error",
+          error: "Internal Server Error",
+        })
     })
   })
 })
